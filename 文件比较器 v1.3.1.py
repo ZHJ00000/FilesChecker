@@ -9,7 +9,7 @@ foh(列表):文件和哈希值判断
 path:输入到计算部分的文件地址
 hashs(列表):哈希值
 group…:比较结果
-tf:检查文件返回的结果（布尔值）
+tf:布尔值
 timestart:计算哈希开始时间
 timeend:计算哈希结束时间
 t:计算耗时
@@ -162,10 +162,14 @@ else:
     group.append([hashs[0]])
     group[0].append(fah[0])
     i = 0
+    tf = False
     for i in range(1, len(hashs)):
-        if hashs[i] == group[len(group) - 1][0]:
-            group[len(group) - 1].append(fah[i])
-        else:
+        ii = 0
+        for ii in range(0,len(group)):
+            if hashs[i] == group[ii][0]:
+                group[ii].append(fah[i])
+                tf = True
+        if tf == False:
             group.append([hashs[i]])
             group[len(group) - 1].append(fah[i])
     print()
