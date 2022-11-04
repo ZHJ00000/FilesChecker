@@ -19,6 +19,9 @@ import os
 import hashlib
 import time
 os.system('')
+print('\033[33m文件校验器 v1.3.2\033[0m')
+print('\033[33mCopyright ©2022 ZHJ. All Rights Reserved.\033[0m')
+print()
 fah=[]
 foh=[]
 #Start:Code from"https://blog.zeruns.tech/archives/582.html",changed
@@ -36,7 +39,6 @@ def calculation(path, algorithm):
     t = (timeend - timestart)
     print('比较源' + str(i) + '的哈希（计算耗时：' + str('%.2f' % t) +'s）：' + hashs[len(hashs)-1])
 #End:Code from"https://blog.zeruns.tech/archives/582.html",changed
-print('\033[33m此工具可以通过多种算法比较文件是否一致。\033[0m')
 while 1:
     alg = str(input('\033[0m请选择算法[MD5(1)/SHA1(2)/SHA224(3)/SHA256(4)/SHA384(5)/SHA512(6)]：\033[32m'))
     if alg == '1' or alg == '2' or alg == '3' or alg == '4' or alg == '5' or alg == '6' :
@@ -61,7 +63,11 @@ while 1:
             if tf == True:
                 break
             elif tf == False:
-                print('\033[31m找不到指定文件，请检查前后是否添加引号。\033[0m')
+                tf = os.path.isdir(data)
+                if tf == True:
+                    print('\033[31m不允许导入文件夹。\033[0m')
+                elif tf == False:
+                    print('\033[31m找不到文件。\033[0m')
         fah.append(data)
     elif data == '2':
         foh.append(2)
@@ -76,72 +82,27 @@ i = 0
 for i in range(0,(len(fah))):
     if foh[i] == 1:
         path = fah[i]
-        if alg == '1':
-            tf = os.path.exists(path)
-            if tf == True:
-                try:
+        tf = os.path.isfile(path)
+        if tf == True:
+            try:
+                if alg == '1':
                     calculation(path, hashlib.md5())
-                except OSError:
-                    errorfahlist.append(i)
-                    print('\033[31m读取文件"' + path + '"出现错误(OSError)。\033[0m')
-            elif tf == False:
-                errorfahlist.append(i)
-                print('\033[31m找不到文件"' + path + '"。\033[0m')
-        elif alg == '2':
-            tf = os.path.exists(path)
-            if tf == True:
-                try:
+                elif alg == '2':
                     calculation(path, hashlib.sha1())
-                except OSError:
-                    errorfahlist.append(i)
-                    print('\033[31m读取文件"' + path + '"出现错误(OSError)。\033[0m')
-            elif tf == False:
-                errorfahlist.append(i)
-                print('\033[31m找不到文件"' + path + '"。\033[0m')
-        elif alg == '3':
-            tf = os.path.isfile(path)
-            if tf == True:
-                try:
+                elif alg == '3':
                     calculation(path, hashlib.sha224())
-                except OSError:
-                    errorfahlist.append(i)
-                    print('\033[31m读取文件"' + path + '"出现错误(OSError)。\033[0m')
-            elif tf == False:
-                errorfahlist.append(i)
-                print('\033[31m找不到文件"' + path + '"。\033[0m')
-        elif alg == '4':
-            tf = os.path.exists(path)
-            if tf == True:
-                try:
+                elif alg == '4':
                     calculation(path, hashlib.sha256())
-                except OSError:
-                    errorfahlist.append(i)
-                    print('\033[31m读取文件"' + path + '"出现错误(OSError)。\033[0m')
-            elif tf == False:
-                errorfahlist.append(i)
-                print('\033[31m找不到文件"' + path + '"。\033[0m')
-        elif alg == '5':
-            tf = os.path.exists(path)
-            if tf == True:
-                try:
+                elif alg == '5':
                     calculation(path, hashlib.sha384())
-                except OSError:
-                    errorfahlist.append(i)
-                    print('\033[31m读取文件"' + path + '"出现错误(OSError)。\033[0m')
-            elif tf == False:
-                errorfahlist.append(i)
-                print('\033[31m找不到文件"' + path + '"。\033[0m')
-        elif alg == '6':
-            tf = os.path.exists(path)
-            if tf == True:
-                try:
+                elif alg == '6':
                     calculation(path, hashlib.sha512())
-                except OSError:
-                    errorfahlist.append(i)
-                    print('\033[31m读取文件"' + path + '"出现错误(OSError)。\033[0m')
-            elif tf == False:
+            except OSError:
                 errorfahlist.append(i)
-                print('\033[31m找不到文件"' + path + '"。\033[0m')
+                print('\033[31m读取文件"' + path + '"出现错误(OSError)。\033[0m')
+        elif tf == False:
+            errorfahlist.append(i)
+            print('\033[31m找不到文件"' + path + '"。\033[0m')
     elif foh[i] == 2:
         hashs.append(fah[i])
         print('比较源' + str(i) + '的哈希（手动输入）：' + hashs[i])
@@ -162,21 +123,22 @@ else:
     group.append([hashs[0]])
     group[0].append(fah[0])
     i = 0
-    tf = False
     for i in range(1, len(hashs)):
         ii = 0
+        tf = False
         for ii in range(0,len(group)):
             if hashs[i] == group[ii][0]:
                 group[ii].append(fah[i])
                 tf = True
+                break
         if tf == False:
             group.append([hashs[i]])
             group[len(group) - 1].append(fah[i])
-    print()
-    print('比较结果：')
     i = 0
     for i in range(0, len(group)):
         del group[i][0]
+    print()
+    print('比较结果：')
     i = 0
     for i in range(0, len(group)):
         print('组' + str(i) + '：' + str(group[i]))
