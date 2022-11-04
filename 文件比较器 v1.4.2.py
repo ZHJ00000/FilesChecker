@@ -19,12 +19,12 @@ import os
 import hashlib
 import time
 os.system('')
-print('\033[33m文件校验器 v1.4.1\033[0m')
+print('\033[33m文件校验器 v1.4.2\033[0m')
 print('\033[33mCopyright ©2022 ZHJ. All Rights Reserved.\033[0m')
 print()
 fah=[]
 foh=[]
-#Start:Code from"https://blog.zeruns.tech/archives/582.html",changed
+#Start:Code from"https://blog.zeruns.tech/archives/582.html",edited
 def calculation(path, algorithm):
     global start, end  # 声明全局变量
     timestart = time.time()
@@ -38,7 +38,7 @@ def calculation(path, algorithm):
     timeend = time.time()
     t = (timeend - timestart)
     print('校验源' + str(i) + '的哈希（计算耗时：' + str('%.2f' % t) +'s）：' + hashs[len(hashs)-1])
-#End:Code from"https://blog.zeruns.tech/archives/582.html",changed
+#End:Code from"https://blog.zeruns.tech/archives/582.html",edited
 while 1:
     alg = str(input('\033[0m请选择算法[MD5(1)/SHA1(2)/SHA224(3)/SHA256(4)/SHA384(5)/SHA512(6)]：\033[32m'))
     if alg == '1' or alg == '2' or alg == '3' or alg == '4' or alg == '5' or alg == '6' :
@@ -105,11 +105,12 @@ for i in range(0,(len(fah))):
 if len(errorfahlist) == 0:
     fah = fah
 else:
-    i = 0
-    for i in range(0,len(errorfahlist)):
-        del fah[errorfahlist[i]]
-        del foh[errorfahlist[i]]
-        del hashs[errorfahlist[i]]
+    ii = len(errorfahlist) - 1
+    for i in range(0, len(errorfahlist)):
+        del fah[errorfahlist[ii]]
+        del foh[errorfahlist[ii]]
+        del hashs[errorfahlist[ii]]
+        ii = ii - 1
 if len(fah) == 0:
     fah = fah
 elif len(fah) == 1:
@@ -150,4 +151,4 @@ else:
         print('组' + str(i) + '：' + str(group[i]))
 print()
 input('\033[0m按 Enter 退出程序。\033[32m')
-print('\033[0m')
+print('\033[0m',end='')
