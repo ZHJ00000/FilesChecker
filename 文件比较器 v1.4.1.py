@@ -19,7 +19,7 @@ import os
 import hashlib
 import time
 os.system('')
-print('\033[33m文件校验器 v1.4\033[0m')
+print('\033[33m文件校验器 v1.4.1\033[0m')
 print('\033[33mCopyright ©2022 ZHJ. All Rights Reserved.\033[0m')
 print()
 fah=[]
@@ -82,27 +82,23 @@ i = 0
 for i in range(0,(len(fah))):
     if foh[i] == 1:
         path = fah[i]
-        tf = os.path.isfile(path)
-        if tf == True:
-            try:
-                if alg == '1':
-                    calculation(path, hashlib.md5())
-                elif alg == '2':
-                    calculation(path, hashlib.sha1())
-                elif alg == '3':
-                    calculation(path, hashlib.sha224())
-                elif alg == '4':
-                    calculation(path, hashlib.sha256())
-                elif alg == '5':
-                    calculation(path, hashlib.sha384())
-                elif alg == '6':
-                    calculation(path, hashlib.sha512())
-            except OSError:
-                errorfahlist.append(i)
-                print('\033[31m读取文件"' + path + '"出现错误(OSError)。\033[0m')
-        elif tf == False:
+        try:
+            if alg == '1':
+                calculation(path, hashlib.md5())
+            elif alg == '2':
+                calculation(path, hashlib.sha1())
+            elif alg == '3':
+                calculation(path, hashlib.sha224())
+            elif alg == '4':
+                calculation(path, hashlib.sha256())
+            elif alg == '5':
+                calculation(path, hashlib.sha384())
+            elif alg == '6':
+                calculation(path, hashlib.sha512())
+        except Exception as err:
             errorfahlist.append(i)
-            print('\033[31m找不到文件"' + path + '"。\033[0m')
+            hashs.append('')
+            print('\033[31m读取文件"' + path + '"出现错误(' + str(err) + ')。\033[0m')
     elif foh[i] == 2:
         hashs.append(fah[i])
         print('校验源' + str(i) + '的哈希（手动输入）：' + hashs[i])
@@ -113,6 +109,7 @@ else:
     for i in range(0,len(errorfahlist)):
         del fah[errorfahlist[i]]
         del foh[errorfahlist[i]]
+        del hashs[errorfahlist[i]]
 if len(fah) == 0:
     fah = fah
 elif len(fah) == 1:
