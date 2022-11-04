@@ -19,7 +19,7 @@ import hashlib
 import time
 fah=[]
 foh=[]
-#Start:Code from"https://zhuanlan.zhihu.com/p/168608305",changed
+#Start:Code from"https://blog.zeruns.tech/archives/582.html",changed
 def calculation(path, algorithm):
     global start, end  # 声明全局变量
     timestart = time.time()
@@ -33,61 +33,22 @@ def calculation(path, algorithm):
     timeend = time.time()
     t = (timeend - timestart)
     print('比较源' + str(len(hashs)-1) + '的哈希（计算耗时：' + str('%.2f' % t) +'s）：' + hashs[len(hashs)-1])
-#End:Code from"https://zhuanlan.zhihu.com/p/168608305",changed
+#End:Code from"https://blog.zeruns.tech/archives/582.html",changed
 print('此工具可以通过多种算法比较文件是否一致。')
 while 1:
     alg = str(input('请选择算法[MD5(1)/SHA1(2)/SHA224(3)/SHA256(4)/SHA384(5)/SHA512(6)]：'))
     if alg == '1' or alg == '2' or alg == '3' or alg == '4' or alg == '5' or alg == '6' :
         break
 while 1:
-    data = str(input('请选择比较源0的来源[文件地址(1)/手动输入哈希值(2)]：'))
-    if data == '1' or data == '2':
-        break
-if data == '1':
-    foh.append(1)
     while 1:
-        data = str(input('请输入文件地址（前后添加引号将无法读取）：'))
-        tf = os.path.exists(data)
-        if tf == True:
-            break
-        elif tf == False:
-            print('输入的文件地址无效。')
-    fah.append(data)
-elif data == '2':
-    foh.append(2)
-    while 1:
-        data = str(input('请输入哈希值：'))
-        if data != '*':
-            break
-    data = data.lower()
-    fah.append(data)
-while 1:
-    data = str(input('请选择比较源1的来源[文件地址(1)/手动输入哈希值(2)]：'))
-    if data == '1' or data == '2':
-        break
-if data == '1':
-    foh.append(1)
-    while 1:
-        data = str(input('请输入文件地址（前后添加引号将无法读取）：'))
-        tf = os.path.exists(data)
-        if tf == True:
-            break
-        elif tf == False:
-            print('输入的文件地址无效。')
-    fah.append(data)
-elif data == '2':
-    foh.append(2)
-    while 1:
-        data = str(input('请输入哈希值：'))
-        if data != '*':
-            break
-    data = data.lower()
-    fah.append(data)
-while 1:
-    while 1:
-        data = str(input('请选择比较源'+str(len(fah))+'的来源[停止添加比开始比较(0)/文件地址(1)/手动输入哈希值(2)]：'))
-        if data == '0' or data == '1' or data == '2':
-            break
+        if len(fah) == 0:
+            data = str(input('请选择比较源0的类型[文件(1)/哈希值(2)]：'))
+            if data == '1' or data == '2':
+                break
+        else:
+            data = str(input('请选择比较源' + str(len(fah)) + '的类型[停止添加并开始比较(0)/文件(1)/哈希值(2)]：'))
+            if data == '0' or data == '1' or data == '2':
+                break
     if data == '0':
         break
     if data == '1':
@@ -98,18 +59,15 @@ while 1:
             if tf == True:
                 break
             elif tf == False:
-                print('输入的文件地址无效。')
+                print('找不到指定文件，请检查前后是否添加引号。')
         fah.append(data)
     elif data == '2':
         foh.append(2)
-        while 1:
-            data = str(input('请输入哈希值：'))
-            if data != '*':
-                break
+        data = str(input('请输入哈希值：'))
         data = data.lower()
         fah.append(data)
-print('正在计算哈希值…',end='')
-print('')
+print()
+print('正在计算哈希值…')
 hashs = []
 i = 0
 for i in range(0,(len(fah))):
@@ -130,21 +88,27 @@ for i in range(0,(len(fah))):
     elif foh[i] == 2:
         hashs.append(fah[i])
         print('比较源' + str(i) + '的哈希（手动输入）：' + hashs[i])
-group = []
-group.append([hashs[0]])
-group[0].append(fah[0])
-i=0
-for i in range(1,len(hashs)):
-    if hashs[i] == group[len(group)-1][0]:
-        group[len(group) - 1].append(fah[i])
-    else:
-        group.append([hashs[i]])
-        group[len(group) - 1].append(fah[i])
-print('比较结果：')
-i = 0
-for i in range(0,len(group)):
-    del group[i][0]
-i = 0
-for i in range(0,len(group)):
-    print('组'+str(i)+'：'+str(group[i]))
-input('报告生成完毕，按 Enter 退出程序。')
+if len(fah) == 1:
+    print()
+    print('由于只添加了1个比较源，不提供比较结果。')
+else:
+    group = []
+    group.append([hashs[0]])
+    group[0].append(fah[0])
+    i = 0
+    for i in range(1, len(hashs)):
+        if hashs[i] == group[len(group) - 1][0]:
+            group[len(group) - 1].append(fah[i])
+        else:
+            group.append([hashs[i]])
+            group[len(group) - 1].append(fah[i])
+    print()
+    print('比较结果：')
+    i = 0
+    for i in range(0, len(group)):
+        del group[i][0]
+    i = 0
+    for i in range(0, len(group)):
+        print('组' + str(i) + '：' + str(group[i]))
+print()
+input('按 Enter 退出程序。')
