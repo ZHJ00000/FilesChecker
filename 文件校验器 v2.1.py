@@ -22,53 +22,70 @@ import hashlib
 import time
 import sys
 os.system('')
-print('\033[33m文件校验器 v2.0\033[0m')
+print('\033[33m文件校验器 v2.1\033[0m')
 print('\033[33mCopyright ©2022 ZHJ. All Rights Reserved.\033[0m')
 print()
 fah = []
 foh = []
 foha = ''
 del sys.argv[0]
-# Start:Code from"https://blog.zeruns.tech/archives/582.html",changed
-def filehash(path, algorithm):
-    global start, end  # 声明全局变量
+def listlocate(list,Element):
+    tf = False
+    for i in range(0,len(list)):
+        if list[i] == Element:
+            tf = True
+            return(i)
+            break
+    if tf == False:
+        return(-1)
+def progressline(name,progress):
+    progress = float('%.4f' % progress)
+    print('\r' + name + '[' + '>'*int(progress*100//4) + '-'*(25-int(progress*100//4)) + ']' + str('%.2f' % (progress*100)) + '%',end='')
+# Start:Code from"https://blog.zeruns.tech/archives/582.html",edited
+def filehash(path, algorithm, name):
     size = os.path.getsize(path)  # 获取文件大小，单位是字节（byte）
+    size1 = size
     with open(path, 'rb') as f:  # 以二进制模式读取文件
         while size >= 1024 * 1024:  # 当文件大于1MB时将文件分块读取
             algorithm.update(f.read(1024 * 1024))
             size -= 1024 * 1024
+            progress = ((size1 - size)/size1)
+            progressline(name,progress)
         algorithm.update(f.read())
     return(algorithm.hexdigest())  # 输出计算结果
-# End:Code from"https://blog.zeruns.tech/archives/582.html",changed
+# End:Code from"https://blog.zeruns.tech/archives/582.html",edited
 def cheak():
     global fah, foh
     print('\033[0m正在计算哈希值…')
     hashs = []
     errorfahlist = []
-    i = 0
     for i in range(0, (len(fah))):
         if foh[i] == 1:
             path = fah[i]
             try:
                 timestart = time.time()
+                if sys.argv[0] == 'file':
+                    name = ('文件的哈希：')
+                else:
+                    name = ('校验源' + str(i) + '的哈希：')
                 if alg == '1':
-                    hashs.append(filehash(path, hashlib.md5()))
+                    hashs.append(filehash(path, hashlib.md5(), name))
                 elif alg == '2':
-                    hashs.append(filehash(path, hashlib.sha1()))
+                    hashs.append(filehash(path, hashlib.sha1(), name))
                 elif alg == '3':
-                    hashs.append(filehash(path, hashlib.sha224()))
+                    hashs.append(filehash(path, hashlib.sha224(), name))
                 elif alg == '4':
-                    hashs.append(filehash(path, hashlib.sha256()))
+                    hashs.append(filehash(path, hashlib.sha256(), name))
                 elif alg == '5':
-                    hashs.append(filehash(path, hashlib.sha384()))
+                    hashs.append(filehash(path, hashlib.sha384(), name))
                 elif alg == '6':
-                    hashs.append(filehash(path, hashlib.sha512()))
+                    hashs.append(filehash(path, hashlib.sha512(), name))
                 timeend = time.time()
                 t = (timeend - timestart)
                 if sys.argv[0] == 'file':
-                    print('文件的哈希（计算耗时：' + str('%.2f' % t) + 's）：' + hashs[len(hashs) - 1])
+                    print('\r文件的哈希（计算耗时：' + str('%.2f' % t) + 's）：' + hashs[len(hashs) - 1])
                 else:
-                    print('校验源' + str(i) + '的哈希（计算耗时：' + str('%.2f' % t) + 's）：' + hashs[len(hashs) - 1])
+                    print('\r校验源' + str(i) + '的哈希（计算耗时：' + str('%.2f' % t) + 's）：' + hashs[len(hashs) - 1])
             except Exception as err:
                 errorfahlist.append(i)
                 hashs.append('')
@@ -118,17 +135,21 @@ def cheak():
             del group[i][0]
         print()
         print('校验结果：')
-        i = 0
         for i in range(0, len(group)):
             print('组' + str(i) + '：' + str(group[i]))
 if len(sys.argv) != 0:
     dispargv = ''
     for i in range(0,len(sys.argv)):
-        dispargv=dispargv + ' ' + sys.argv[i]
+        if ' ' in sys.argv[i]:
+            dispargv = dispargv + ' "' + sys.argv[i] + '"'
+        else:
+            dispargv=dispargv + ' ' + sys.argv[i]
     print('\033[33m自定义运行参数：' + dispargv + '\033[0m')
     print()
-    sys.argv[0] = sys.argv[0].lower()
-    if sys.argv[0] == 'list':
+    lowerargv = []
+    for i in range(0,len(sys.argv)):
+        lowerargv.append(sys.argv[i])
+    if lowerargv[0] == 'list':
         if len(sys.argv) != 1:
             tf = os.path.isfile(sys.argv[1])
             if tf == True:
@@ -138,8 +159,10 @@ if len(sys.argv) != 0:
                 except Exception as err:
                     print('\033[31m读取列表文件出现错误(' + str(err) + ')。\033[0m')
                 else:
-                    for i in range(len(l)):
+                    for i in range(0,len(l)):
                         l[i] = l[i].rstrip()
+                    for i in range(0,len(l)):
+                        l[i] = l[i].partition('#')[0]
                     while '' in l:
                         l.remove('')
                     if len(l) == 0:
@@ -170,14 +193,7 @@ if len(sys.argv) != 0:
                             print('\033[31m列表文件中指定了不支持的算法。\033[0m')
                             tf = False
             elif tf == False:
-                if sys.argv[1] == '？' or sys.argv[1] == '?':
-                    print('\033[33m导入列表文件可以直接启动校验步骤，以下是列表文件编写说明：')
-                    print('1.先打开记事本，第一行请填写要使用的算法，支持的算法有MD5、SHA1、SHA224、SHA256、SHA384、SHA512；')
-                    print('2.再在新的一行中，选择校验源的类型。如果是文件，请输入“<file>”，如果是哈希值，请输入“<hash>”；')
-                    print('3.然后再新的一行中，输入文件地址或哈希值，文件地址请勿添加引号；')
-                    print('4.如果新的校验源的类型和上一个相同，请直接输入文件地址或哈希值，否则进行第2步操作。\033[0m')
-                else:
-                    print('\033[31m找不到列表文件。\033[0m')
+                print('\033[31m找不到列表文件。\033[0m')
             if tf == True:
                 ll = []
                 for i in range(len(l)):
@@ -193,30 +209,38 @@ if len(sys.argv) != 0:
                         foha = 2
                     else:
                         foh.append(foha)
-                        if foha == 2:
+                        if foha == 1:
+                            if l[i][0] == '"' and l[i][len(l[i]) - 1] == '"':
+                                data1 = list(l[i])
+                                del data1[0]
+                                del data1[len(data1) - 1]
+                                l[i] = ''
+                                for ii in range(len(data1)):
+                                    l[i] = l[i] + data1[ii]
+                        elif foha == 2:
                             l[i] = l[i].lower()
                         fah.append(l[i])
                 cheak()
         else:
             print('\033[31m找不到列表文件。\033[0m')
-    elif sys.argv[0] == 'file':
+    elif lowerargv[0] == 'file':
         if len(sys.argv) != 1:
-            if sys.argv[1] == 'md5':
+            if lowerargv[1] == 'md5':
                 alg = '1'
                 tf = True
-            elif sys.argv[1] == 'sha1':
+            elif lowerargv[1] == 'sha1':
                 alg = '2'
                 tf = True
-            elif sys.argv[1] == 'sha224':
+            elif lowerargv[1] == 'sha224':
                 alg = '3'
                 tf = True
-            elif sys.argv[1] == 'sha256':
+            elif lowerargv[1] == 'sha256':
                 alg = '4'
                 tf = True
-            elif sys.argv[1] == 'sha384':
+            elif lowerargv[1] == 'sha384':
                 alg = '5'
                 tf = True
-            elif sys.argv[1] == 'sha512':
+            elif lowerargv[1] == 'sha512':
                 alg = '6'
                 tf = True
             else:
@@ -230,11 +254,10 @@ if len(sys.argv) != 0:
                 print('\033[31m找不到文件。\033[0m')
         else:
             print('\033[31m参数中指定了不支持的算法。\033[0m')
-
     else:
         print('\033[31m不支持的参数。\033[0m')
 else:
-    sys.argv.append('module')
+    sys.argv.append('default')
     while 1:
         alg = str(input('\033[0m请选择算法[MD5(1)/SHA1(2)/SHA224(3)/SHA256(4)/SHA384(5)/SHA512(6)]：\033[32m'))
         if alg == '1' or alg == '2' or alg == '3' or alg == '4' or alg == '5' or alg == '6':
@@ -254,7 +277,15 @@ else:
         elif data == '1':
             foh.append(1)
             while 1:
-                data = str(input('\033[0m请输入文件地址（前后添加引号将无法读取）：\033[32m'))
+                data = str(input('\033[0m请输入文件地址：\033[32m'))
+                if len(data) != 0:
+                    if data[0] == '"' and data[len(data) - 1] == '"':
+                        data1 = list(data)
+                        del data1[0]
+                        del data1[len(data1) - 1]
+                        data = ''
+                        for i in range(len(data1)):
+                            data = data + data1[i]
                 tf = os.path.isfile(data)
                 if tf == True:
                     break
