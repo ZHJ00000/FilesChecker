@@ -22,7 +22,7 @@ import hashlib
 import time
 import sys
 os.system('')
-print('\033[33m文件校验器 v2.1\033[0m')
+print('\033[33m文件校验器 v2.1.1\033[0m')
 print('\033[33mCopyright ©2022 ZHJ. All Rights Reserved.\033[0m')
 print()
 fah = []
@@ -38,9 +38,9 @@ def listlocate(list,Element):
             break
     if tf == False:
         return(-1)
-def progressline(name,progress):
+def progressbar(name,progress):
     progress = float('%.4f' % progress)
-    print('\r' + name + '[' + '>'*int(progress*100//4) + '-'*(25-int(progress*100//4)) + ']' + str('%.2f' % (progress*100)) + '%',end='')
+    print('\r' + name + '[' + '>'*int(progress*100//2) + '-'*(50-int(progress*100//2)) + ']' + str('%.2f' % (progress*100)) + '%',end='')
 # Start:Code from"https://blog.zeruns.tech/archives/582.html",edited
 def filehash(path, algorithm, name):
     size = os.path.getsize(path)  # 获取文件大小，单位是字节（byte）
@@ -50,7 +50,7 @@ def filehash(path, algorithm, name):
             algorithm.update(f.read(1024 * 1024))
             size -= 1024 * 1024
             progress = ((size1 - size)/size1)
-            progressline(name,progress)
+            progressbar(name,progress)
         algorithm.update(f.read())
     return(algorithm.hexdigest())  # 输出计算结果
 # End:Code from"https://blog.zeruns.tech/archives/582.html",edited
@@ -64,10 +64,11 @@ def cheak():
             path = fah[i]
             try:
                 timestart = time.time()
-                if sys.argv[0] == 'file':
+                if lowerargv[0] == 'file':
                     name = ('文件的哈希：')
                 else:
                     name = ('校验源' + str(i) + '的哈希：')
+                progressbar(name,0)
                 if alg == '1':
                     hashs.append(filehash(path, hashlib.md5(), name))
                 elif alg == '2':
@@ -82,14 +83,14 @@ def cheak():
                     hashs.append(filehash(path, hashlib.sha512(), name))
                 timeend = time.time()
                 t = (timeend - timestart)
-                if sys.argv[0] == 'file':
+                if lowerargv[0] == 'file':
                     print('\r文件的哈希（计算耗时：' + str('%.2f' % t) + 's）：' + hashs[len(hashs) - 1])
                 else:
                     print('\r校验源' + str(i) + '的哈希（计算耗时：' + str('%.2f' % t) + 's）：' + hashs[len(hashs) - 1])
             except Exception as err:
                 errorfahlist.append(i)
                 hashs.append('')
-                print('\033[31m读取文件"' + path + '"出现错误(' + str(err) + ')。\033[0m')
+                print('\n\033[31m读取文件"' + path + '"出现错误(' + str(err) + ')。\033[0m')
         elif foh[i] == 2:
             hashs.append(fah[i])
             print('校验源' + str(i) + '的哈希（手动输入）：' + hashs[i])
@@ -103,7 +104,7 @@ def cheak():
     if len(fah) == 0:
         fah = fah
     elif len(fah) == 1:
-        if sys.argv[0] == 'file':
+        if lowerargv[0] == 'file':
             fah = fah
         else:
             print()
@@ -137,6 +138,7 @@ def cheak():
         print('校验结果：')
         for i in range(0, len(group)):
             print('组' + str(i) + '：' + str(group[i]))
+lowerargv = []
 if len(sys.argv) != 0:
     dispargv = ''
     for i in range(0,len(sys.argv)):
@@ -146,9 +148,8 @@ if len(sys.argv) != 0:
             dispargv=dispargv + ' ' + sys.argv[i]
     print('\033[33m自定义运行参数：' + dispargv + '\033[0m')
     print()
-    lowerargv = []
     for i in range(0,len(sys.argv)):
-        lowerargv.append(sys.argv[i])
+        lowerargv.append(sys.argv[i].lower())
     if lowerargv[0] == 'list':
         if len(sys.argv) != 1:
             tf = os.path.isfile(sys.argv[1])
@@ -258,6 +259,7 @@ if len(sys.argv) != 0:
         print('\033[31m不支持的参数。\033[0m')
 else:
     sys.argv.append('default')
+    lowerargv.append('default')
     while 1:
         alg = str(input('\033[0m请选择算法[MD5(1)/SHA1(2)/SHA224(3)/SHA256(4)/SHA384(5)/SHA512(6)]：\033[32m'))
         if alg == '1' or alg == '2' or alg == '3' or alg == '4' or alg == '5' or alg == '6':
