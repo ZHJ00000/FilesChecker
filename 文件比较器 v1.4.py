@@ -3,12 +3,12 @@
 Variables Dictionary：
 alg:选择的算法
 size:文件大小
-data:多种用途：比较源来源（文件地址或手动输入哈希值），文件地址，手动输入的哈希值
+data:多种用途：校验源来源（文件地址或手动输入哈希值），文件地址，手动输入的哈希值
 fah(列表):文件和哈希值
 foh(列表):文件和哈希值判断
 path:输入到计算部分的文件地址
 hashs(列表):哈希值
-group…:比较结果
+group…:校验结果
 tf:布尔值
 timestart:计算哈希开始时间
 timeend:计算哈希结束时间
@@ -19,7 +19,7 @@ import os
 import hashlib
 import time
 os.system('')
-print('\033[33m文件校验器 v1.3.2\033[0m')
+print('\033[33m文件校验器 v1.4\033[0m')
 print('\033[33mCopyright ©2022 ZHJ. All Rights Reserved.\033[0m')
 print()
 fah=[]
@@ -37,7 +37,7 @@ def calculation(path, algorithm):
     hashs.append(algorithm.hexdigest())  # 输出计算结果
     timeend = time.time()
     t = (timeend - timestart)
-    print('比较源' + str(i) + '的哈希（计算耗时：' + str('%.2f' % t) +'s）：' + hashs[len(hashs)-1])
+    print('校验源' + str(i) + '的哈希（计算耗时：' + str('%.2f' % t) +'s）：' + hashs[len(hashs)-1])
 #End:Code from"https://blog.zeruns.tech/archives/582.html",changed
 while 1:
     alg = str(input('\033[0m请选择算法[MD5(1)/SHA1(2)/SHA224(3)/SHA256(4)/SHA384(5)/SHA512(6)]：\033[32m'))
@@ -46,11 +46,11 @@ while 1:
 while 1:
     while 1:
         if len(fah) == 0:
-            data = str(input('\033[0m请选择比较源0的类型[文件(1)/哈希值(2)]：\033[32m'))
+            data = str(input('\033[0m请选择校验源0的类型[文件(1)/哈希值(2)]：\033[32m'))
             if data == '1' or data == '2':
                 break
         else:
-            data = str(input('\033[0m请选择比较源' + str(len(fah)) + '的类型[停止添加并开始比较(0)/文件(1)/哈希值(2)]：\033[32m'))
+            data = str(input('\033[0m请选择校验源' + str(len(fah)) + '的类型[停止添加并开始校验(0)/文件(1)/哈希值(2)]：\033[32m'))
             if data == '0' or data == '1' or data == '2':
                 break
     if data == '0':
@@ -105,7 +105,7 @@ for i in range(0,(len(fah))):
             print('\033[31m找不到文件"' + path + '"。\033[0m')
     elif foh[i] == 2:
         hashs.append(fah[i])
-        print('比较源' + str(i) + '的哈希（手动输入）：' + hashs[i])
+        print('校验源' + str(i) + '的哈希（手动输入）：' + hashs[i])
 if len(errorfahlist) == 0:
     fah = fah
 else:
@@ -117,30 +117,40 @@ if len(fah) == 0:
     fah = fah
 elif len(fah) == 1:
     print()
-    print('由于只添加了1个比较源，不提供比较结果。')
+    print('由于只添加了1个校验源，不提供校验结果。')
 else:
     group = []
     group.append([hashs[0]])
-    group[0].append(fah[0])
+    if foh[0] == 1:
+        group[0].append(fah[0])
+    elif foh[0] == 2:
+        group[0].append('<' + fah[0] + '>')
     i = 0
     for i in range(1, len(hashs)):
         ii = 0
         tf = False
         for ii in range(0,len(group)):
             if hashs[i] == group[ii][0]:
-                group[ii].append(fah[i])
+                if foh[i] == 1:
+                    group[ii].append(fah[i])
+                elif foh[i] == 2:
+                    group[ii].append('<' + fah[i] + '>')
                 tf = True
                 break
         if tf == False:
             group.append([hashs[i]])
-            group[len(group) - 1].append(fah[i])
+            if foh[i] == 1:
+                group[len(group) - 1].append(fah[i])
+            elif foh[i] == 2:
+                group[len(group) - 1].append('<' + fah[i] + '>')
     i = 0
     for i in range(0, len(group)):
         del group[i][0]
     print()
-    print('比较结果：')
+    print('校验结果：')
     i = 0
     for i in range(0, len(group)):
         print('组' + str(i) + '：' + str(group[i]))
 print()
 input('\033[0m按 Enter 退出程序。\033[32m')
+print('\033[0m')
