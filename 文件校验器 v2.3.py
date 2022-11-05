@@ -24,7 +24,8 @@ import sys
 import getopt
 import glob
 os.system('')
-print('\033[33m文件校验器 v2.2\033[0m')
+exitcode = 0
+print('\033[33m文件校验器 v2.3\033[0m')
 print('\033[33mCopyright ©2022 ZHJ. All Rights Reserved.\033[0m')
 print()
 fah = []
@@ -48,7 +49,7 @@ def filehash(path, algorithm, name):
     return(algorithm.hexdigest())  # 输出计算结果
 # End:Code from"https://blog.zeruns.tech/archives/582.html",edited
 def cheak():
-    global fah, foh
+    global fah, foh, exitcode
     print('\033[0m正在计算哈希值…')
     hashs = []
     errorfahlist = []
@@ -83,9 +84,9 @@ def cheak():
                     if len(fah) == 1:
                         print('\r文件的哈希（计算耗时：' + str('%.2f' % t) + 's）：' + hashs[len(hashs) - 1])
                     else:
-                        print('\r文件' + str(i) + '的哈希（计算耗时：' + str('%.2f' % t) + 's）：' + hashs[len(hashs) - 1])
+                        print('\r' + '文件' + str(i) + '的哈希（计算耗时：' + str('%.2f' % t) + 's）：' + hashs[len(hashs) - 1] + ' '*10)
                 else:
-                    print('\r校验源' + str(i) + '的哈希（计算耗时：' + str('%.2f' % t) + 's）：' + hashs[len(hashs) - 1])
+                    print('\r' + '校验源' + str(i) + '的哈希（计算耗时：' + str('%.2f' % t) + 's）：' + hashs[len(hashs) - 1] + ' '*10)
             except Exception as err:
                 errorfahlist.append(i)
                 hashs.append('')
@@ -103,7 +104,7 @@ def cheak():
             del hashs[errorfahlist[ii]]
             ii = ii - 1
     if len(fah) == 0:
-        fah = fah
+        exitcode = 1
     elif len(fah) == 1:
         if sys.argv[0] == 'file':
             fah = fah
@@ -153,6 +154,7 @@ if len(sys.argv) != 0:
             opts, args = getopt.getopt(sys.argv[1:], "hc:", ["help", "encoding="])
         except getopt.GetoptError as err:
             print('\033[31m参数错误：' + str(err) + '\033[0m')
+            exitcode = 1
         else:
             for i in range(0,len(opts)):
                 opts[i] = list(opts[i])
@@ -162,18 +164,20 @@ if len(sys.argv) != 0:
                 tfhelp = False
                 encoding = 'utf-8'
                 for i in range(0,len(opts)):
-                    if opts[i][0] == '-c' or opts[i][0] == '--encoding':
-                        encoding = opts[i][1]
-                    elif opts[i][0] == '-h' or opts[i][0] == '--help':
+                    if '-h' in opts[i] or '--help' in opts[i]:
                         tfhelp = True
+                    else:
+                        if '-c' in opts[i] or '--encoding' in opts[i]:
+                            encoding = opts[i][1]
             if tfhelp == True:
-                print('用法：文件校验器 list [选项] <列表文件地址>\nlist选项：\n  没有参数,-h,--help\t显示帮助。\n  -c,--encoding\t设置列表文件编码（默认utf-8）。')
+                print('用法：文件校验器 list [选项] <列表文件地址>\nlist选项：\n  没有参数,-h,--help\t显示帮助。\n  -c,--encoding ENCODING\t设置列表文件编码(默认utf-8)。')
             else:
                 try:
                     with open(args[0], 'r', encoding=encoding) as file:
                         l = file.readlines()
                 except Exception as err:
                     print('\033[31m读取列表文件出现错误(' + str(err) + ')。\033[0m')
+                    exitcode = 1
                     tf = False
                 else:
                     for i in range(0,len(l)):
@@ -183,7 +187,8 @@ if len(sys.argv) != 0:
                     while '' in l:
                         l.remove('')
                     if len(l) == 0:
-                        print('\033[31m列表文件中指定了不支持的算法。\033[0m')
+                        print('\033[31m列表文件错误：不支持的算法。\033[0m')
+                        exitcode = 1
                     else:
                         for i in range(0, len(l)):
                             l[i] = l[i].rstrip()
@@ -207,7 +212,8 @@ if len(sys.argv) != 0:
                             alg = '6'
                             tf = True
                         else:
-                            print('\033[31m列表文件中指定了不支持的算法。\033[0m')
+                            print('\033[31m列表文件错误：不支持的算法。\033[0m')
+                            exitcode = 1
                             tf = False
                 if tf == True:
                     ll = []
@@ -215,7 +221,8 @@ if len(sys.argv) != 0:
                         ll.append(l[i].lower())
                     if ll[1] != '<file>' and ll[1] != '<hash>':
                         tf = False
-                        print('\033[31m未设置校验源类型。\033[0m')
+                        print('\033[31m列表文件错误：未设置校验源类型。\033[0m')
+                        exitcode = 1
                 if tf == True:
                     for i in range(1,len(l)):
                         if ll[i] == '<file>':
@@ -236,6 +243,11 @@ if len(sys.argv) != 0:
                                 if len(fs) == 0:
                                     fah.append(l[i])
                                 else:
+                                    for i in range(0, len(fs)):
+                                        if os.path.isfile(fs[i]) == False:
+                                            fs[i] = ''
+                                    while '' in fs:
+                                        fs.remove('')
                                     fah.extend(fs)
                                     for i in range(1,len(fs)):
                                         foh.append(1)
@@ -244,61 +256,75 @@ if len(sys.argv) != 0:
                                 fah.append(l[i])
                     cheak()
     elif sys.argv[0] == 'file':
+        alg = ''
         try:
-            opts, args = getopt.getopt(sys.argv[1:], "h", ["help"])
+            opts, args = getopt.getopt(sys.argv[1:], "ha:", ["help", "algorithm="])
         except getopt.GetoptError as err:
             print('\033[31m参数错误：' + str(err) + '\033[0m')
+            exitcode = 1
         else:
             for i in range(0,len(opts)):
                 opts[i] = list(opts[i])
             tfhelp = False
             for i in range(0, len(opts)):
-                if opts[i][0] == '-h' or opts[i][0] == '--help':
+                if '-h' in opts[i] or '--help' in opts[i]:
                     tfhelp = True
+                else:
+                    if '-a' in opts[i] or '--algorithm' in opts[i]:
+                        alg = opts[i][1]
             if tfhelp == True:
-                print('用法：文件校验器 file [选项] <哈希算法> [文件地址]\nfile选项：\n  没有参数,-h,--help\t显示帮助。')
+                print('用法：文件校验器 file [选项] [文件地址]\nfile选项：\n  没有参数,-h,--help\t显示帮助。\n  -a,--algorithm ALGORITHM\t设置算法(必选)。')
             else:
-                if len(sys.argv) != 1:
-                    if sys.argv[1] == 'md5':
+                if alg != '':
+                    if alg == 'md5':
                         alg = '1'
                         tf = True
-                    elif sys.argv[1] == 'sha1':
+                    elif alg == 'sha1':
                         alg = '2'
                         tf = True
-                    elif sys.argv[1] == 'sha224':
+                    elif alg == 'sha224':
                         alg = '3'
                         tf = True
-                    elif sys.argv[1] == 'sha256':
+                    elif alg == 'sha256':
                         alg = '4'
                         tf = True
-                    elif sys.argv[1] == 'sha384':
+                    elif alg == 'sha384':
                         alg = '5'
                         tf = True
-                    elif sys.argv[1] == 'sha512':
+                    elif alg == 'sha512':
                         alg = '6'
                         tf = True
                     else:
-                        print('\033[31m参数中指定了不支持的哈希算法。\033[0m')
+                        print('\033[31m参数错误：不支持的哈希算法。\033[0m')
+                        exitcode = 1
                         tf = False
-                    if len(sys.argv) >= 2 and tf == True:
-                        for i in range(2,len(sys.argv)):
-                            fs = glob.glob(sys.argv[i])
+                    if len(args) >= 1 and tf == True:
+                        for i in range(0,len(args)):
+                            fs = glob.glob(args[i])
                             if len(fs) == 0:
-                                fah.append(sys.argv[i])
+                                fah.append(args[i])
                                 foh.append(1)
                             else:
+                                for i in range(0,len(fs)):
+                                    if os.path.isfile(fs[i]) == False:
+                                        fs[i] = ''
+                                while '' in fs:
+                                    fs.remove('')
                                 fah.extend(fs)
                                 for i in range(0,len(fs)):
                                     foh.append(1)
                         cheak()
-                    elif len(sys.argv) == 2:
-                        print('用法：文件校验器 file [选项] <哈希算法> [文件地址]\nfile选项：\n  没有参数,-h,--help\t显示帮助。')
+                    elif len(args) == 0:
+                        print('用法：文件校验器 file [选项] [文件地址]\nfile选项：\n  没有参数,-h,--help\t显示帮助。\n  -a,--algorithm ALGORITHM\t设置算法(必选)。')
                 else:
-                    print('用法：文件校验器 file [选项] <哈希算法> [文件地址]\nfile选项：\n  没有参数,-h,--help\t显示帮助。')
+                    print('\033[31m参数错误：未指定参数：-a,--algorithm\033[0m')
+                    exitcode = 1
+                    print('用法：文件校验器 file [选项] [文件地址]\nfile选项：\n  没有参数,-h,--help\t显示帮助。\n  -a,--algorithm ALGORITHM\t设置算法(必选)。')
     elif sys.argv[0] == 'help' or sys.argv[0] == '-h' or sys.argv[0] == '--help':
         print('用法：文件校验器 <命令> [选项]\n命令：\n  没有命令\t使用交互模式。\n  help\t显示帮助。\n  list\t导入列表文件并校验。\n  file\t直接输入文件地址并校验。\n一般选项：\n  -h,--help\t显示帮助。')
     else:
         print('\033[31m不支持的命令。\033[0m')
+        exitcode = 1
 else:
     sys.argv.append('default')
     while 1:
@@ -349,3 +375,4 @@ else:
 print()
 input('\033[0m按 Enter 退出程序。\033[32m')
 print('\033[0m',end='')
+sys.exit(exitcode)
