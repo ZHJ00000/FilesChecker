@@ -26,7 +26,7 @@ import glob
 os.system('')
 exitcode = 0
 print('\033[33m文件校验器 v2.3.1\033[0m')
-print('\033[33mCopyright ©2022 ZHJ. All Rights Reserved.\033[0m')
+print('\033[33mCopyright ©2023 ZHJ. All Rights Reserved.\033[0m')
 print()
 fah = []
 foh = []
