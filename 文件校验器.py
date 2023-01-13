@@ -25,7 +25,7 @@ import getopt
 import glob
 os.system('')
 exitcode = 0
-print('\033[33m文件校验器 v2.3\033[0m')
+print('\033[33m文件校验器 v2.3.1\033[0m')
 print('\033[33mCopyright ©2022 ZHJ. All Rights Reserved.\033[0m')
 print()
 fah = []
@@ -48,7 +48,7 @@ def filehash(path, algorithm, name):
         algorithm.update(f.read())
     return(algorithm.hexdigest())  # 输出计算结果
 # End:Code from"https://blog.zeruns.tech/archives/582.html",edited
-def cheak():
+def check():
     global fah, foh, exitcode
     print('\033[0m正在计算哈希值…')
     hashs = []
@@ -186,6 +186,7 @@ if len(sys.argv) != 0:
                         l[i] = l[i].partition('#')[0]
                     while '' in l:
                         l.remove('')
+                    tf = False
                     if len(l) == 0:
                         print('\033[31m列表文件错误：不支持的算法。\033[0m')
                         exitcode = 1
@@ -219,9 +220,13 @@ if len(sys.argv) != 0:
                     ll = []
                     for i in range(len(l)):
                         ll.append(l[i].lower())
-                    if ll[1] != '<file>' and ll[1] != '<hash>':
-                        tf = False
-                        print('\033[31m列表文件错误：未设置校验源类型。\033[0m')
+                    try:
+                        if ll[1] != '<file>' and ll[1] != '<hash>':
+                            tf = False
+                            print('\033[31m列表文件错误：未设置校验源类型。\033[0m')
+                            exitcode = 1
+                    except IndexError:
+                        print('\033[31m列表文件中不含任何可添加校验源。\033[0m')
                         exitcode = 1
                 if tf == True:
                     for i in range(1,len(l)):
@@ -254,7 +259,11 @@ if len(sys.argv) != 0:
                             elif foha == 2:
                                 l[i] = l[i].lower()
                                 fah.append(l[i])
-                    cheak()
+                    if fah == []:
+                        print('\033[31m列表文件中不含任何可添加校验源。\033[0m')
+                        exitcode = 1
+                    else:
+                        check()
     elif sys.argv[0] == 'file':
         alg = ''
         try:
@@ -313,7 +322,7 @@ if len(sys.argv) != 0:
                                 fah.extend(fs)
                                 for i in range(0,len(fs)):
                                     foh.append(1)
-                        cheak()
+                        check()
                     elif len(args) == 0:
                         print('用法：文件校验器 file [选项] [文件地址]\nfile选项：\n  没有参数,-h,--help\t显示帮助。\n  -a,--algorithm ALGORITHM\t设置算法(必选)。')
                 else:
@@ -371,7 +380,7 @@ else:
             data = data.lower()
             fah.append(data)
     print()
-    cheak()
+    check()
 print()
 input('\033[0m按 Enter 退出程序。\033[32m')
 print('\033[0m',end='')
