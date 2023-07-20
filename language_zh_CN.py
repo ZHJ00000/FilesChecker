@@ -1,0 +1,228 @@
+# Copyright ©2023 ZHJ. All Rights Reserved.
+# Beta 1
+FOR = ['FilesChecker Beta', 3.0, 'Windows']
+LANGUAGE = ['zh_CN', '简体中文']
+def s1():
+    return '文件校验器 Beta'
+def s2():
+    return '开始校验(&K)'
+def s3():
+    return '添加文件(&F)…'
+def s4():
+    return '添加哈希值(&H)…'
+def s5():
+    return '导入任务列表(&O)…'
+def s6():
+    return '保存任务列表(&S)…'
+def s7():
+    return '导出校验结果(&E)…'
+def s8():
+    return '清空列表(&C)'
+def s9():
+    return '设置(&S)…'
+def s10():
+    return '退出(&X)'
+def s11():
+    return '任务(&T)'
+def s12():
+    return '关于(&A)…'
+def s13():
+    return '帮助(&H)'
+def s14():
+    return '添加文件(&F)…'
+def s15():
+    return '添加哈希值(&H)…'
+def s16():
+    return '开始校验(&K)'
+def s17():
+    return '序号'
+def s18():
+    return '组号'
+def s19():
+    return '文件'
+def s20():
+    return '哈希值'
+def s21():
+    return '自动'
+def s22():
+    return '添加文件'
+def s23():
+    return '所有文件 (*.*)|*.*'
+def s24():
+    return '设置'
+def s25():
+    return '完成后操作'
+def s26():
+    return '无'
+def s27():
+    return '关机'
+def s28():
+    return '重启'
+def s29():
+    return '自定义…'
+def s30():
+    return '自动保存校验结果'
+def s31():
+    return '自动保存校验结果'
+def s32():
+    return '导出校验结果'
+def s33():
+    return 'Microsoft Excel 逗号分隔值文件 (*.csv)|*.csv|文本文档 (*.txt)|*.txt|所有文件 (*.*)|*.*'
+def s34():
+    return '常规'
+def s35():
+    return '语言设置'
+def s36():
+    return '哈希值类型：'
+def s37():
+    return '应用(&A)'
+def s38():
+    return '删除(&D)'
+def s39():
+    return '需要重新启动软件以更改语言。你确定要继续吗？'
+def s40():
+    return '语言'
+def s41():
+    return '添加哈希值…'
+def s42():
+    return '添加哈希值'
+def s43():
+    return '未知'
+def s44():
+    return '关于'
+def s45():
+    return '文件校验器 v3.0 Beta1'
+def s46():
+    return '未安装该语言包。'
+def s47():
+    return '图形界面使用 wxFormBuilder 设计。'
+def s48():
+    return '文本文档 (*.txt)|*.txt|所有文件 (*.*)|*.*'
+def s49():
+    return '导入任务列表'
+def s50():
+    return '打开文本文档'
+def s51():
+    return '请选择文本文档使用的编码。'
+def s52():
+    return '预览：'
+def s53():
+    return '确定'
+def s54():
+    return '取消'
+def s55():
+    return '无法读取文件：'
+def s56():
+    return '无法读取任务列表：'
+def s57():
+    return '确定(&O)'
+def s58():
+    return '任务列表错误：不支持的算法。'
+def s59():
+    return '任务列表错误：未定义数据类型。'
+def s60():
+    return '保存任务列表'
+def s61():
+    return '任务列表中不含任何可添加数据。'
+def s62():
+    return '警告'
+def s63():
+    return '是(&Y)'
+def s64():
+    return '否(&N)'
+def s65():
+    return '正在校验，确认退出？'
+def s66():
+    return '已用时间：'
+def s67():
+    return '已处理：'
+def s68():
+    return '进度：'
+def s69():
+    return '总进度：'
+def s70():
+    return '哈希值计算'
+def s71():
+    return '正在处理：'
+def s72():
+    return '大小：'
+def s73():
+    return '字节'
+def s74():
+    return '时间：'
+def s75():
+    return ''
+def s76():
+    return '显示详细信息(&S)'
+def s77():
+    return '重新选择文件(&C)…'
+def s78():
+    return '编辑哈希值(&E)…'
+def s79():
+    return '复制文件地址(&F)'
+def s80():
+    return '复制哈希值(&H)'
+def s81():
+    return '错误'
+def s82():
+    return '正在计算哈希值…'
+def s83():
+    return '正在校验…'
+def s84():
+    return '正在保存校验结果：'
+def s85():
+    return '正在运行命令：'
+def s86():
+    return '正在保存任务列表：'
+def s87():
+    return '重新选择文件'
+def s88():
+    return '编辑哈希值'
+def s89():
+    return '已复制到剪贴板。'
+def s90():
+    return '运行命令：'
+def s91():
+    return '设置项"自动保存校验结果"无效。'
+def s92():
+    return '详细信息'
+def s93():
+    return '文件：'
+def s94():
+    return '哈希值：'
+def s95():
+    return '计算耗时：'
+def s96():
+    return '错误信息：'
+def s97():
+    return '计算哈希值并校验。'
+def s98():
+    return '添加一个或多个文件。'
+def s99():
+    return '添加哈希值。'
+def s100():
+    return '从文件加载任务列表。'
+def s101():
+    return '将任务列表保存到文件。'
+def s102():
+    return '将校验结果导出到文件。'
+def s103():
+    return '更改软件的设置。'
+def s104():
+    return '退出本软件。'
+def s105():
+    return '显示软件信息、版本号和版权。'
+def s106():
+    return '文件校验器 Beta 卸载'
+def s107():
+    return '你确定要卸载"文件校验器 Beta"吗？(Y/N):'
+def s108():
+    return '删除文件…'
+def s109():
+    return '删除软件注册表…'
+def s110():
+    return '删除快捷方式…'
+def s111():
+    return '卸载完成，按 Enter 退出程序。'
+def s112():
+    return '发生错误，以下是错误信息：'
