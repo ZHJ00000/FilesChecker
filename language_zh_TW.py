@@ -1,5 +1,5 @@
 # Copyright ©2023 ZHJ. All Rights Reserved.
-# Beta 1
+# Beta 2
 FOR = ['FilesChecker Beta', 3.0, 'Windows']
 LANGUAGE = ['zh_TW', '繁體中文']
 def s1():
@@ -91,11 +91,11 @@ def s43():
 def s44():
     return '關於'
 def s45():
-    return '文件校驗器 v3.0 Beta1'
+    return '文件校驗器 v3.0 Beta2'
 def s46():
     return '未安裝該語言包。'
-def s47():
-    return '圖形介面使用 wxFormBuilder 設計。'
+def s47(pyver, wxver):
+    return 'Python 版本：' + pyver + '\nwxPython 版本：' + wxver
 def s48():
     return '文本文檔 (*.txt)|*.txt|所有檔 (*.*)|*.*'
 def s49():
@@ -150,8 +150,8 @@ def s73():
     return '位元組'
 def s74():
     return '時間：'
-def s75():
-    return ''
+def s75(err):
+    return '發生錯誤，以下是錯誤資訊：\n' + err
 def s76():
     return '顯示詳細資訊(&S)'
 def s77():
