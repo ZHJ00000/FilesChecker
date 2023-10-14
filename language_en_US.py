@@ -1,5 +1,5 @@
 # Copyright ©2023 ZHJ. All Rights Reserved.
-# Beta 1
+# Beta 2
 FOR = ['FilesChecker Beta', 3.0, 'Windows']
 LANGUAGE = ['en_US', 'English(US)']
 def s1():
@@ -91,11 +91,11 @@ def s43():
 def s44():
     return 'About'
 def s45():
-    return 'Files Checker v3.0 Beta1'
+    return 'Files Checker v3.0 Beta2'
 def s46():
     return 'The language pack is not installed.'
-def s47():
-    return 'The GUI is designed using wxFormBuilder.'
+def s47(pyver, wxver):
+    return 'Python version:' + pyver + '\nwxPython version:' + wxver
 def s48():
     return 'Text Document (*.txt)|*.txt|All files (*.*)|*.*'
 def s49():
@@ -150,8 +150,8 @@ def s73():
     return 'bytes'
 def s74():
     return 'Time:'
-def s75():
-    return ''
+def s75(err):
+    return 'The error(s) occurred, the following is the error message:\n' + err
 def s76():
     return '&Show Details'
 def s77():
