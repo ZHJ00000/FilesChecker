@@ -215,14 +215,21 @@ class main(wx.Frame):
             sys.exit(0)
 
     def export(self, path):
-        with open(path, 'w', encoding='ansi') as file:
-            file.write(language.s17() + ',' + language.s18() + ',' + language.s19() + ',' + language.s20() + '\n')
-            for i in range(0, frame.m_listCtrl2.GetItemCount()):
-                for ii in range(0, 4):
-                    if ii == 3:
-                        file.write('"' + frame.m_listCtrl2.GetItemText(i, 3) + '"\n')
-                    else:
-                        file.write('"' + frame.m_listCtrl2.GetItemText(i, ii) + '",')
+        try:
+            with open(path, 'w', encoding='ansi') as file:
+                file.write(language.s17() + ',' + language.s18() + ',' + language.s19() + ',' + language.s20() + '\n')
+                for i in range(0, frame.m_listCtrl2.GetItemCount()):
+                    for ii in range(0, 4):
+                        if ii == 3:
+                            file.write('"' + frame.m_listCtrl2.GetItemText(i, 3) + '"\n')
+                        else:
+                            file.write('"' + frame.m_listCtrl2.GetItemText(i, ii) + '",')
+        except Exception as err:
+            toastone = wx.MessageDialog(None, language.s75(type(err).__name__ + ': ' + str(err)), language.s81(),
+                                        wx.OK | wx.OK_DEFAULT | wx.ICON_ERROR)
+            toastone.SetOKLabel(language.s57())
+            if toastone.ShowModal() == wx.ID_YES:  # 如果点击了提示框的确定按钮
+                toastone.Destroy()
 
     def startcheck(self, event):
         check = MyDialog4(None)
@@ -312,7 +319,7 @@ class main(wx.Frame):
             information = []
             for i in range(0, frame.m_listCtrl2.GetItemCount()):
                 if listitems[i][2] == '':
-                    None
+                    pass
                 else:
                     count = count + 1
                     try:
@@ -378,7 +385,7 @@ class main(wx.Frame):
                             listitems[i][3] = filehash(check, listitems[i][2],
                                                                      hashlib.sha512())
                     except Exception as err:
-                        information.append(str(err))
+                        information.append(type(err).__name__ + ': ' + str(err))
                         allsize1 = allsize1 + size
                         Time2 = time.time()
                         listitems[i][3] = language.s81()
@@ -424,7 +431,16 @@ class main(wx.Frame):
                 main.export(self, export)
             if command != '':
                 self.SetStatusText(language.s85() + command)
-                os.startfile(command)
+                try:
+                    os.startfile(command)
+                except FileNotFoundError:
+                    os.popen(command)
+                except Exception as err:
+                    toastone = wx.MessageDialog(None, language.s75(type(err).__name__ + ': ' + str(err)), language.s81(),
+                                                wx.OK | wx.OK_DEFAULT | wx.ICON_ERROR)
+                    toastone.SetOKLabel(language.s57())
+                    if toastone.ShowModal() == wx.ID_YES:  # 如果点击了提示框的确定按钮
+                        toastone.Destroy()
             self.SetStatusText('')
 
         thread1 = threading.Thread(target=gethash, args=(), daemon=True)
@@ -474,23 +490,30 @@ class main(wx.Frame):
                             style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT)
         if dlg.ShowModal() == wx.ID_OK:
             self.SetStatusText(language.s86() + dlg.GetPath())
-            with open(dlg.GetPath(), 'w', encoding='utf-8') as file:
-                dlg.Destroy()
-                f = frame.m_choice1.GetString(frame.m_choice1.GetSelection()) + '\n'
-                if frame.m_listCtrl2.GetItemCount() != 0:
-                    foha = ''
-                    for i in range(0, frame.m_listCtrl2.GetItemCount()):
-                        if frame.m_listCtrl2.GetItemText(i, 2) == '' and foha != 2:
-                            foha = 2
-                            f = f + '<hash>\n' + frame.m_listCtrl2.GetItemText(i, 3) + '\n'
-                        elif frame.m_listCtrl2.GetItemText(i, 2) == '' and foha == 2:
-                            f = f + frame.m_listCtrl2.GetItemText(i, 3) + '\n'
-                        elif frame.m_listCtrl2.GetItemText(i, 2) != '' and foha != 1:
-                            foha = 1
-                            f = f + '<file>\n' + frame.m_listCtrl2.GetItemText(i, 2) + '\n'
-                        elif frame.m_listCtrl2.GetItemText(i, 2) != '' and foha == 1:
-                            f = f + frame.m_listCtrl2.GetItemText(i, 2) + '\n'
-                file.write(f)
+            try:
+                with open(dlg.GetPath(), 'w', encoding='utf-8') as file:
+                    dlg.Destroy()
+                    f = frame.m_choice1.GetString(frame.m_choice1.GetSelection()) + '\n'
+                    if frame.m_listCtrl2.GetItemCount() != 0:
+                        foha = ''
+                        for i in range(0, frame.m_listCtrl2.GetItemCount()):
+                            if frame.m_listCtrl2.GetItemText(i, 2) == '' and foha != 2:
+                                foha = 2
+                                f = f + '<hash>\n' + frame.m_listCtrl2.GetItemText(i, 3) + '\n'
+                            elif frame.m_listCtrl2.GetItemText(i, 2) == '' and foha == 2:
+                                f = f + frame.m_listCtrl2.GetItemText(i, 3) + '\n'
+                            elif frame.m_listCtrl2.GetItemText(i, 2) != '' and foha != 1:
+                                foha = 1
+                                f = f + '<file>\n' + frame.m_listCtrl2.GetItemText(i, 2) + '\n'
+                            elif frame.m_listCtrl2.GetItemText(i, 2) != '' and foha == 1:
+                                f = f + frame.m_listCtrl2.GetItemText(i, 2) + '\n'
+                    file.write(f)
+            except Exception as err:
+                toastone = wx.MessageDialog(None, language.s75(type(err).__name__ + ': ' + str(err)), language.s81(),
+                                            wx.OK | wx.OK_DEFAULT | wx.ICON_ERROR)
+                toastone.SetOKLabel(language.s57())
+                if toastone.ShowModal() == wx.ID_YES:  # 如果点击了提示框的确定按钮
+                    toastone.Destroy()
             self.SetStatusText('')
 
     def outputreport(self, event):
@@ -974,7 +997,7 @@ class MyDialog3(wx.Dialog):
 
     def __init__(self, parent):
         wx.Dialog.__init__(self, parent, id=wx.ID_ANY, title=language.s44(), pos=wx.DefaultPosition,
-                           size=wx.Size(400, 240), style=wx.DEFAULT_DIALOG_STYLE)
+                           size=wx.Size(450, 270), style=wx.DEFAULT_DIALOG_STYLE)
 
         main.Disable(frame)
 
@@ -987,8 +1010,8 @@ class MyDialog3(wx.Dialog):
         bSizer6.Add(self.m_bitmap1, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 5)
 
         self.m_staticText1 = wx.StaticText(self, wx.ID_ANY,
-                                           language.s45() + '\n' + 'Copyright ©2023 ZHJ. All Rights Reserved.' + '\n' +
-                                           language.s47(),
+                                           language.s45() + '\n' + language.s47(sys.version, wx.version()) +
+                                           '\n' + 'Copyright ©2023 ZHJ. All Rights Reserved.' + '\n',
                                            wx.DefaultPosition, wx.DefaultSize, wx.ALIGN_CENTER_HORIZONTAL)
         self.m_staticText1.Wrap(-1)
 
@@ -1171,7 +1194,7 @@ class MyDialog5(wx.Dialog):
         except Exception as err:
             self.m_sdbSizer1OK.Enable(False)
             self.m_richText1.BeginTextColour(wx.Colour(255, 0, 0))
-            self.m_richText1.SetValue(language.s55() + '\n' + str(err))
+            self.m_richText1.SetValue(language.s55() + '\n' + type(err).__name__ + ': ' + str(err))
             self.m_richText1.EndTextColour()
         self.SetSizer(bSizer10)
         self.Layout()
@@ -1202,7 +1225,7 @@ class MyDialog5(wx.Dialog):
         except Exception as err:
             self.m_sdbSizer1OK.Enable(False)
             self.m_richText1.BeginTextColour(wx.Colour(255, 0, 0))
-            self.m_richText1.SetValue(language.s55() + '\n' + str(err))
+            self.m_richText1.SetValue(language.s55() + '\n' + type(err).__name__ + ': ' + str(err))
             self.m_richText1.EndTextColour()
 
     def ok(self, event):
@@ -1214,7 +1237,7 @@ class MyDialog5(wx.Dialog):
                 l = file.readlines()
         except Exception as err:
             tf = False
-            toastone = wx.MessageDialog(None, language.s56() + str(err), language.s81(),
+            toastone = wx.MessageDialog(None, language.s56() + type(err).__name__ + ': ' + str(err), language.s81(),
                                         wx.OK | wx.OK_DEFAULT | wx.ICON_ERROR)
             toastone.SetOKLabel(language.s57())
             if toastone.ShowModal() == wx.ID_YES:  # 如果点击了提示框的确定按钮
@@ -1401,6 +1424,7 @@ class MyDialog6(wx.Dialog):
 if __name__ == '__main__':
     app = wx.App()
     sys.path.append(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3'))
+    sys.path.append(os.path.dirname(sys.argv[0]))
     if not os.path.isdir(os.path.join(os.environ["APPDATA"], 'ZHJ')):
         os.mkdir(os.path.join(os.environ["APPDATA"], 'ZHJ'))
     if not os.path.isdir(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3')):
