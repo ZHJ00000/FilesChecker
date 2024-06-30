@@ -1,0 +1,80 @@
+name: Bug Report
+description: Create a report to help us improve
+title: "[Bug Report]: "
+assignees:
+  - octocat
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for taking the time to fill out this bug report!
+  - type: dropdown
+    id: operating_system
+    attributes:
+      label: Operating System
+      description: Choose the operating system you are using.
+      options:
+        - Windows 11
+        - Windows 10
+        - Windows 8.1
+        - Windows 8
+        - Windows 7
+        - Earlier versions of Windows
+        - Windows Server
+        - Ubuntu
+        - CentOS
+        - Debian
+        - Other Linux distributions
+          required: true
+  - type: dropdown
+    id: version
+    attributes:
+      label: Software Version
+      description: Choose the Software Version you are using.
+      options:
+        - v3.0 Beta2
+        - v3.0 Beta1
+        - v2.3.1
+        - v2.3
+        - v2.2
+        - v2.1.1
+        - v2.1
+        - v2.0
+        - v1.4.2
+        - v1.4.1
+        - v1.4
+        - v1.3.2
+        - v1.3.1
+        - v1.3
+        - v1.2
+        - v1.1
+        - v1.0
+          required: true
+  - type: textarea
+    id: operation_steps
+    attributes:
+      label: Operation Steps
+      description: Describe your operational steps in the software.
+    validations:
+      required: true
+  - type: textarea
+    id: expected_results
+    attributes:
+      label: Expected Results
+      description: 
+    validations:
+      required: false
+  - type: textarea
+    id: actual_results
+    attributes:
+      label: Actual results
+      description: 
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: More Details?
+      description: You can give more details here.
+      value: 
+    validations:
+      required: false
