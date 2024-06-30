@@ -24,7 +24,7 @@ body:
         - CentOS
         - Debian
         - Other Linux distributions
-          required: true
+      required: true
   - type: dropdown
     id: version
     attributes:
@@ -48,7 +48,7 @@ body:
         - v1.2
         - v1.1
         - v1.0
-          required: true
+      required: true
   - type: textarea
     id: operation_steps
     attributes:
