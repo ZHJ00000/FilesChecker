@@ -1,7 +1,8 @@
-# Copyright ©2023 ZHJ. All Rights Reserved.
-# Beta 2
+# coding=utf-8
+# Copyright ©2024 ZHJ. All Rights Reserved.
+# Beta 3
 FOR = ['FilesChecker Beta', 3.0, 'Windows']
-LANGUAGE = ['zh_TW', '繁體中文']
+LANGUAGE = ['Chinese__Traditional__Taiwan', '繁體中文 (中國臺灣)']
 def s1():
     return '文件校驗器 Beta'
 def s2():
@@ -47,7 +48,7 @@ def s21():
 def s22():
     return '添加文件'
 def s23():
-    return '所有檔 (*.*)|*.*'
+    return '所有檔案 (*.*)|*.*'
 def s24():
     return '設置'
 def s25():
@@ -67,7 +68,7 @@ def s31():
 def s32():
     return '匯出校驗結果'
 def s33():
-    return 'Microsoft Excel 逗號分隔值文件 (*.csv)|*.csv|文本文檔 (*.txt)|*.txt|所有檔 (*.*)|*.*'
+    return 'Microsoft Excel 逗號分隔值文件 (*.csv)|*.csv|文字文件 (*.txt)|*.txt|所有檔案 (*.*)|*.*'
 def s34():
     return '常規'
 def s35():
@@ -91,13 +92,13 @@ def s43():
 def s44():
     return '關於'
 def s45():
-    return '文件校驗器 v3.0 Beta2'
+    return '文件校驗器 v3.0 Beta3'
 def s46():
     return '未安裝該語言包。'
 def s47(pyver, wxver):
-    return 'Python 版本：' + pyver + '\nwxPython 版本：' + wxver
+    return 'Python 版本：' + pyver + '    wxPython 版本：' + wxver
 def s48():
-    return '文本文檔 (*.txt)|*.txt|所有檔 (*.*)|*.*'
+    return '文字文件 (*.txt)|*.txt|所有檔案 (*.*)|*.*'
 def s49():
     return '導入任務列表'
 def s50():
@@ -212,17 +213,3 @@ def s104():
     return '退出本軟體。'
 def s105():
     return '顯示軟體資訊、版本號和版權。'
-def s106():
-    return '文件校驗器 Beta 卸載'
-def s107():
-    return '你確定要卸載"檔校驗器 Beta"嗎？(Y/N):'
-def s108():
-    return '刪除檔…'
-def s109():
-    return '刪除軟體註冊表…'
-def s110():
-    return '刪除快捷方式…'
-def s111():
-    return '卸載完成，按 Enter 退出程式。'
-def s112():
-    return '發生錯誤，以下是錯誤資訊：'
