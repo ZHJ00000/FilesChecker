@@ -1,7 +1,8 @@
-# Copyright ©2023 ZHJ. All Rights Reserved.
-# Beta 2
+# coding=utf-8
+# Copyright ©2024 ZHJ. All Rights Reserved.
+# Beta 3
 FOR = ['FilesChecker Beta', 3.0, 'Windows']
-LANGUAGE = ['zh_CN', '简体中文']
+LANGUAGE = ['Chinese__Simplified__China', '简体中文 (中国大陆)']
 def s1():
     return '文件校验器 Beta'
 def s2():
@@ -91,11 +92,11 @@ def s43():
 def s44():
     return '关于'
 def s45():
-    return '文件校验器 v3.0 Beta2'
+    return '文件校验器 v3.0 Beta3'
 def s46():
     return '未安装该语言包。'
 def s47(pyver, wxver):
-    return 'Python 版本：' + pyver + '\nwxPython 版本：' + wxver
+    return 'Python 版本：' + pyver + '    wxPython 版本：' + wxver
 def s48():
     return '文本文档 (*.txt)|*.txt|所有文件 (*.*)|*.*'
 def s49():
@@ -212,17 +213,3 @@ def s104():
     return '退出本软件。'
 def s105():
     return '显示软件信息、版本号和版权。'
-def s106():
-    return '文件校验器 Beta 卸载'
-def s107():
-    return '你确定要卸载"文件校验器 Beta"吗？(Y/N):'
-def s108():
-    return '删除文件…'
-def s109():
-    return '删除软件注册表…'
-def s110():
-    return '删除快捷方式…'
-def s111():
-    return '卸载完成，按 Enter 退出程序。'
-def s112():
-    return '发生错误，以下是错误信息：'
