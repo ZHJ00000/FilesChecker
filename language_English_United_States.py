@@ -1,9 +1,10 @@
-# Copyright ©2023 ZHJ. All Rights Reserved.
-# Beta 2
+# coding=utf-8
+# Copyright ©2024 ZHJ. All Rights Reserved.
+# Beta 3
 FOR = ['FilesChecker Beta', 3.0, 'Windows']
-LANGUAGE = ['en_US', 'English(US)']
+LANGUAGE = ['English_United_States', 'English (United States)']
 def s1():
-    return 'Files Checker Beta'
+    return 'FilesChecker Beta'
 def s2():
     return 'Start Chec&k'
 def s3():
@@ -91,11 +92,11 @@ def s43():
 def s44():
     return 'About'
 def s45():
-    return 'Files Checker v3.0 Beta2'
+    return 'FilesChecker v3.0 Beta3'
 def s46():
     return 'The language pack is not installed.'
 def s47(pyver, wxver):
-    return 'Python version:' + pyver + '\nwxPython version:' + wxver
+    return 'Python version:' + pyver + '    wxPython version:' + wxver
 def s48():
     return 'Text Document (*.txt)|*.txt|All files (*.*)|*.*'
 def s49():
@@ -212,17 +213,3 @@ def s104():
     return 'Exit this software.'
 def s105():
     return 'Display software information, version number, and copyright.'
-def s106():
-    return 'FilesChecker Beta Uninstall'
-def s107():
-    return 'Are you sure you want to uninstall"FilesChecker Beta"?(Y/N):'
-def s108():
-    return 'Deleting files…'
-def s109():
-    return 'Removing software registry…'
-def s110():
-    return 'Removing shortcut…'
-def s111():
-    return 'Uninstall completed, press Enter to exit the program.'
-def s112():
-    return 'The error(s) occurred, the following is the error message:'
