@@ -32,6 +32,7 @@ body:
       label: Software Version
       description: Choose the Software Version you are using.
       options:
+        - v3.0 Beta3
         - v3.0 Beta2
         - v3.0 Beta1
         - v2.3.1
