@@ -1,6 +1,6 @@
 # coding=utf-8
 # Copyright ©2024 ZHJ. All Rights Reserved.
-# Beta 3
+# Beta 4
 FOR = ['FilesChecker Beta', 3.0, 'Windows']
 LANGUAGE = ['English_United_States', 'English (United States)']
 def s1():
@@ -10,7 +10,7 @@ def s2():
 def s3():
     return 'Add &File…'
 def s4():
-    return 'Add &Hash…'
+    return 'Add C&hecksum…'
 def s5():
     return '&Open Task…'
 def s6():
@@ -32,7 +32,7 @@ def s13():
 def s14():
     return 'Add &File…'
 def s15():
-    return 'Add &Hash…'
+    return 'Add C%hecksum…'
 def s16():
     return 'Start Chec&k'
 def s17():
@@ -42,7 +42,7 @@ def s18():
 def s19():
     return 'File'
 def s20():
-    return 'Hash'
+    return 'Checksum'
 def s21():
     return 'Auto'
 def s22():
@@ -73,8 +73,11 @@ def s34():
     return 'Routine'
 def s35():
     return 'Language Setting'
-def s36():
-    return 'Hash value type:'
+def s36(list):
+    if list:
+        return 'Checksum type: ' + ' or '.join(map(str, list))
+    else:
+        return 'Checksum type: Unknown'
 def s37():
     return '&Apply'
 def s38():
@@ -84,19 +87,19 @@ def s39():
 def s40():
     return 'Language'
 def s41():
-    return 'Error'
+    pass
 def s42():
-    return 'Add Hash'
+    return 'Add Checksum'
 def s43():
-    return 'Unknown'
+    pass
 def s44():
     return 'About'
 def s45():
-    return 'FilesChecker v3.0 Beta3'
+    return 'FilesChecker v3.0 Beta4'
 def s46():
     return 'The language pack is not installed.'
 def s47(pyver, wxver):
-    return 'Python version:' + pyver + '    wxPython version:' + wxver
+    return 'Python version: ' + pyver + '    wxPython version: ' + wxver
 def s48():
     return 'Text Document (*.txt)|*.txt|All files (*.*)|*.*'
 def s49():
@@ -106,21 +109,21 @@ def s50():
 def s51():
     return 'Please select the encoding used for the text document.'
 def s52():
-    return 'Preview:'
+    return 'Preview: '
 def s53():
     return 'OK'
 def s54():
     return 'Cancel'
 def s55():
-    return 'Unable to read file:'
+    return 'Unable to read file: '
 def s56():
-    return 'Error reading task:'
+    return 'Error reading task: '
 def s57():
     return '&OK'
 def s58():
-    return 'Task error:Unsupported algorithm.'
+    return 'Task error: Unsupported algorithm.'
 def s59():
-    return 'Task error:The data type is not defined.'
+    return 'Task error: The data type is not defined.'
 def s60():
     return 'Save Task'
 def s61():
@@ -134,73 +137,73 @@ def s64():
 def s65():
     return 'Verifying. Are you sure to exit?'
 def s66():
-    return 'Elapsed time:'
+    return 'Elapsed time: '
 def s67():
-    return 'Processed:'
+    return 'Processed: '
 def s68():
-    return 'Progress:'
+    return 'Progress: '
 def s69():
-    return 'Overall progress:'
+    return 'Overall progress: '
 def s70():
-    return 'Hash Value Calculation'
+    return 'Checksum Calculation'
 def s71():
-    return 'Processing:'
+    return 'Processing: '
 def s72():
-    return 'Size:'
+    return 'Size: '
 def s73():
     return 'bytes'
 def s74():
-    return 'Time:'
+    return 'Time: '
 def s75(err):
-    return 'The error(s) occurred, the following is the error message:\n' + err
+    return 'The error(s) occurred, the following is the error message: \n' + err
 def s76():
     return '&Show Details'
 def s77():
     return 'Re-Sele&ct File'
 def s78():
-    return '&Edit Hash'
+    return '&Edit Checksum'
 def s79():
     return 'Copy &File Address'
 def s80():
-    return 'Copy &Hash'
+    return 'Copy C&hecksum'
 def s81():
     return 'Error'
 def s82():
-    return 'Calculating Hash…'
+    return 'Calculating Checksum…'
 def s83():
     return 'Checking…'
 def s84():
-    return 'Exporting Check Result:'
+    return 'Exporting Check Result: '
 def s85():
-    return 'Running Command:'
+    return 'Running Command: '
 def s86():
-    return 'Saving Task:'
+    return 'Saving Task: '
 def s87():
     return 'Re-Select File'
 def s88():
-    return 'Edit Hash'
+    return 'Edit Checksum'
 def s89():
     return 'Has been copied to the clipboard.'
 def s90():
-    return 'Run Command:'
+    return 'Run Command: '
 def s91():
     return 'The setting item "Automatically Save Check Results" is invalid.'
 def s92():
     return 'Details'
 def s93():
-    return 'File:'
+    return 'File: '
 def s94():
-    return 'Hash:'
+    return 'Checksum: '
 def s95():
-    return 'Calculation Time:'
+    return 'Calculation Time: '
 def s96():
-    return 'Error Message:'
+    return 'Error Message: '
 def s97():
-    return 'Calculate the hash value and verify it.'
+    return 'Calculate the checksum and verify it.'
 def s98():
     return 'Add one or more files.'
 def s99():
-    return 'Add Hash.'
+    return 'Add Checksum.'
 def s100():
     return 'Load the task from a file.'
 def s101():
