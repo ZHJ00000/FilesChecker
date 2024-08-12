@@ -1,7 +1,7 @@
 # coding=utf-8
 # Copyright ©2024 ZHJ. All Rights Reserved.
-# Beta 3
-FOR = ['FilesChecker Beta', 3.0, 'Windows']
+# Beta 4
+FOR = ['FilesChecker Beta', (3, 0), 'Windows']
 LANGUAGE = ['Chinese__Traditional__Macao_SAR', '繁體中文 (中國澳門特別行政區)']
 def s1():
     return '文件校驗器 Beta'
@@ -10,7 +10,7 @@ def s2():
 def s3():
     return '添加文件(&F)…'
 def s4():
-    return '添加雜湊值(&H)…'
+    return '添加校驗和(&H)…'
 def s5():
     return '導入任務列表(&O)…'
 def s6():
@@ -32,7 +32,7 @@ def s13():
 def s14():
     return '添加文件(&F)…'
 def s15():
-    return '添加雜湊值(&H)…'
+    return '添加校驗和(&H)…'
 def s16():
     return '開始校驗(&K)'
 def s17():
@@ -42,7 +42,7 @@ def s18():
 def s19():
     return '文件'
 def s20():
-    return '雜湊值'
+    return '校驗和'
 def s21():
     return '自動'
 def s22():
@@ -73,8 +73,11 @@ def s34():
     return '常規'
 def s35():
     return '語言設置'
-def s36():
-    return '雜湊數值型別：'
+def s36(list):
+    if list:
+        return '雜湊數值型別：' + ' 或 '.join(map(str, list))
+    else:
+        return '雜湊數值型別：未知'
 def s37():
     return '應用(&A)'
 def s38():
@@ -84,15 +87,15 @@ def s39():
 def s40():
     return '語言'
 def s41():
-    return '添加雜湊值…'
+    pass
 def s42():
-    return '添加雜湊值'
+    return '添加校驗和'
 def s43():
-    return '未知'
+    pass
 def s44():
     return '關於'
 def s45():
-    return '文件校驗器 v3.0 Beta3'
+    return '文件校驗器 v3.0 Beta4'
 def s46():
     return '未安裝該語言包。'
 def s47(pyver, wxver):
@@ -142,7 +145,7 @@ def s68():
 def s69():
     return '總進度：'
 def s70():
-    return '雜湊值計算'
+    return '校驗和計算'
 def s71():
     return '正在處理：'
 def s72():
@@ -158,15 +161,15 @@ def s76():
 def s77():
     return '重新選擇檔(&C)…'
 def s78():
-    return '編輯雜湊值(&E)…'
+    return '編輯校驗和(&E)…'
 def s79():
     return '複製檔地址(&F)'
 def s80():
-    return '複製雜湊值(&H)'
+    return '複製校驗和(&H)'
 def s81():
     return '錯誤'
 def s82():
-    return '正在計算雜湊值…'
+    return '正在計算校驗和…'
 def s83():
     return '正在校驗…'
 def s84():
@@ -178,7 +181,7 @@ def s86():
 def s87():
     return '重新選擇檔'
 def s88():
-    return '編輯雜湊值'
+    return '編輯校驗和'
 def s89():
     return '已複製到剪貼板。'
 def s90():
@@ -190,17 +193,17 @@ def s92():
 def s93():
     return '文件：'
 def s94():
-    return '雜湊值：'
+    return '校驗和：'
 def s95():
     return '計算耗時：'
 def s96():
     return '錯誤資訊：'
 def s97():
-    return '計算雜湊值並校驗。'
+    return '計算校驗和並校驗。'
 def s98():
     return '添加一個或多個檔。'
 def s99():
-    return '添加雜湊值。'
+    return '添加校驗和。'
 def s100():
     return '從檔載入任務列表。'
 def s101():
