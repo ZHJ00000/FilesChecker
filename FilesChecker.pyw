@@ -1,3 +1,4 @@
+# coding=utf-8
 # Copyright ©2024 ZHJ. All Rights Reserved.
 
 import wx, wx.xrc, wx.adv, wx.richtext  # pip install wxPython
@@ -10,9 +11,18 @@ import time
 import pyperclip  # pip install pyperclip
 from importlib import reload
 import locale
+import zlib
+import platform
 import ctypes
-ctypes.windll.user32.SetProcessDPIAware()
+sysver = []
+for i in platform.version().split('.'):
+    sysver.append(int(i))
+if tuple(sysver) >= (10, 0, 15063):
+    ctypes.windll.user32.SetProcessDpiAwarenessContext(ctypes.c_void_p(-4))
+else:
+    ctypes.windll.user32.SetProcessDPIAware()
 locale = locale.getlocale()[0].replace(' ', '_').replace('(', '_').replace(')', '_')
+
 
 fah = ''
 ischeck = False
@@ -66,20 +76,41 @@ def intask(file, encoding):
             if l[0] == 'md5':
                 frame.m_choice1.SetSelection(0)
                 tf = True
-            elif l[0] == 'sha1':
+            elif l[0] == 'sha1' or l[0] == 'sha-1':
                 frame.m_choice1.SetSelection(1)
                 tf = True
-            elif l[0] == 'sha224':
+            elif l[0] == 'sha224' or l[0] == 'sha-224':
                 frame.m_choice1.SetSelection(2)
                 tf = True
-            elif l[0] == 'sha256':
+            elif l[0] == 'sha256' or l[0] == 'sha-256':
                 frame.m_choice1.SetSelection(3)
                 tf = True
-            elif l[0] == 'sha384':
+            elif l[0] == 'sha384' or l[0] == 'sha-384':
                 frame.m_choice1.SetSelection(4)
                 tf = True
-            elif l[0] == 'sha512':
+            elif l[0] == 'sha512' or l[0] == 'sha-512':
                 frame.m_choice1.SetSelection(5)
+                tf = True
+            elif l[0] == 'sha3-224':
+                frame.m_choice1.SetSelection(6)
+                tf = True
+            elif l[0] == 'sha3-256':
+                frame.m_choice1.SetSelection(7)
+                tf = True
+            elif l[0] == 'sha3-384':
+                frame.m_choice1.SetSelection(8)
+                tf = True
+            elif l[0] == 'sha3-512':
+                frame.m_choice1.SetSelection(9)
+                tf = True
+            elif l[0] == 'blake2b':
+                frame.m_choice1.SetSelection(10)
+                tf = True
+            elif l[0] == 'blake2s':
+                frame.m_choice1.SetSelection(11)
+                tf = True
+            elif l[0] == 'crc32' or l[0] == 'crc-32':
+                frame.m_choice1.SetSelection(12)
                 tf = True
             else:
                 toastone = wx.MessageDialog(None, language.s58(), language.s81(),
@@ -185,14 +216,15 @@ class main(wx.Frame):
     def __init__(self, parent):
         global fah, file, information
         wx.Frame.__init__(self, parent, id=wx.ID_ANY, title=language.s1(), pos=wx.DefaultPosition,
-                          size=wx.Size(int('%.0f' % (1000 * wx.GetDisplayPPI()[0] / 96)),
-                                       int('%.0f' % (600 * wx.GetDisplayPPI()[0] / 96))),
+                          size=wx.Size(1000, 600),
                           style=wx.DEFAULT_FRAME_STYLE | wx.MAXIMIZE_BOX | wx.TAB_TRAVERSAL)
-        self.SetClientSize(wx.Size(int('%.0f' % (1000 * wx.GetDisplayPPI()[0] / 96)),
-                                       int('%.0f' % (600 * wx.GetDisplayPPI()[0] / 96))))
+        self.SetSize(wx.Size(int('%.0f' % (1000 * self.GetDPI()[0] / 96)),
+                                       int('%.0f' % (600 * self.GetDPI()[0] / 96))))
+        self.SetClientSize(wx.Size(int('%.0f' % (1000 * self.GetDPI()[0] / 96)),
+                                       int('%.0f' % (600 * self.GetDPI()[0] / 96))))
 
-        self.SetSizeHints(wx.Size(int('%.0f' % (1000 * wx.GetDisplayPPI()[0] / 96)),
-                                       int('%.0f' % (600 * wx.GetDisplayPPI()[0] / 96))),
+        self.SetSizeHints(wx.Size(int('%.0f' % (1000 * self.GetDPI()[0] / 96)),
+                                       int('%.0f' % (600 * self.GetDPI()[0] / 96))),
                           wx.Size(-1, -1))
         self.SetForegroundColour(wx.SystemSettings.GetColour(wx.SYS_COLOUR_WINDOW))
         self.SetBackgroundColour(wx.SystemSettings.GetColour(wx.SYS_COLOUR_MENU))
@@ -258,7 +290,8 @@ class main(wx.Frame):
         self.SetMenuBar(self.m_menubar2)
 
         self.m_toolBar1 = self.CreateToolBar(wx.TB_HORIZONTAL, wx.ID_ANY)
-        m_choice1Choices = [u"MD5", u"SHA1", u"SHA224", u"SHA256", u"SHA384", u"SHA512"]
+        m_choice1Choices = ["MD5", "SHA-1", "SHA-224", "SHA-256", "SHA-384", "SHA-512", "SHA3-224", "SHA3-256",
+                            "SHA3-384", "SHA3-512", "BLAKE2b", "BLAKE2s", "CRC-32"]
         self.m_choice1 = wx.Choice(self.m_toolBar1, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, m_choice1Choices, 0)
         self.m_choice1.SetSelection(0)
         self.m_toolBar1.AddControl(self.m_choice1)
@@ -274,22 +307,22 @@ class main(wx.Frame):
         bSizer2 = wx.BoxSizer(wx.VERTICAL)
 
         self.m_listCtrl2 = wx.ListCtrl(self, wx.ID_ANY, wx.DefaultPosition,
-                                       wx.Size(int('%.0f' % (1000 * wx.GetDisplayPPI()[0] / 96)),
-                                               int('%.0f' % (485 * wx.GetDisplayPPI()[0] / 96))),
+                                       wx.Size(int('%.0f' % (1000 * self.GetDPI()[0] / 96)),
+                                               int('%.0f' % (485 * self.GetDPI()[0] / 96))),
                                        wx.LC_HRULES | wx.LC_REPORT)
         self.m_listCtrl2.SetMinSize(
-            wx.Size(int('%.0f' % (1000 * wx.GetDisplayPPI()[0] / 96)),
-                                               int('%.0f' % (485 * wx.GetDisplayPPI()[0] / 96))))
+            wx.Size(int('%.0f' % (1000 * self.GetDPI()[0] / 96)),
+                                               int('%.0f' % (485 * self.GetDPI()[0] / 96))))
 
         bSizer2.Add(self.m_listCtrl2, 1, wx.ALL | wx.EXPAND, 5)
         self.m_listCtrl2.InsertColumn(0, language.s17())
         self.m_listCtrl2.InsertColumn(1, language.s18())
         self.m_listCtrl2.InsertColumn(2, language.s19())
         self.m_listCtrl2.InsertColumn(3, language.s20())
-        self.m_listCtrl2.SetColumnWidth(0, int('%.0f' % (50 * wx.GetDisplayPPI()[0] / 96)))  # 设置每一列的宽度
-        self.m_listCtrl2.SetColumnWidth(1, int('%.0f' % (50 * wx.GetDisplayPPI()[0] / 96)))
-        self.m_listCtrl2.SetColumnWidth(2, int('%.0f' % (425 * wx.GetDisplayPPI()[0] / 96)))
-        self.m_listCtrl2.SetColumnWidth(3, int('%.0f' % (445 * wx.GetDisplayPPI()[0] / 96)))
+        self.m_listCtrl2.SetColumnWidth(0, int('%.0f' % (50 * self.GetDPI()[0] / 96)))  # 设置每一列的宽度
+        self.m_listCtrl2.SetColumnWidth(1, int('%.0f' % (50 * self.GetDPI()[0] / 96)))
+        self.m_listCtrl2.SetColumnWidth(2, int('%.0f' % (425 * self.GetDPI()[0] / 96)))
+        self.m_listCtrl2.SetColumnWidth(3, int('%.0f' % (445 * self.GetDPI()[0] / 96)))
 
         fileDrop = FileDrop()
         self.m_listCtrl2.SetDropTarget(fileDrop)
@@ -434,9 +467,51 @@ class main(wx.Frame):
                     check.m_staticText6.SetLabelText(language.s69() + str('%.2f' % (allprogress * 100)) + '%')
                     check.m_gauge2.SetValue(int('%.0f' % (allprogress * 10000)))
                 algorithm.update(f.read())
+            check.m_staticText5.SetLabelText(language.s68() + '100.00%')
+            check.m_gauge1.SetValue(10000)
+            allsize1 += size
+            allprogress = (allsize1 / allsize)
+            check.m_staticText4.SetLabelText(language.s67() + intformat(size1) + ' ' + language.s73())
+            check.m_staticText6.SetLabelText(language.s69() + str('%.2f' % (allprogress * 100)) + '%')
+            check.m_gauge2.SetValue(int('%.0f' % (allprogress * 10000)))
             information.append(timeformat(int(Time1 - Time2) // 1))
             Time2 = time.time()
             return algorithm.hexdigest()  # 输出计算结果
+
+        def filecrc32(self, path):
+            global Time, Time2, allsize, allsize1, information, size
+            size = os.path.getsize(path)  # 获取文件大小，单位是字节（byte）
+            size1 = size
+            crc = 0
+            with open(path, 'rb') as f:  # 以二进制模式读取文件
+                Time1 = time.time()
+                while size >= 1048576:  # 当文件大于1MB时将文件分块读取
+                    block = f.read(1024 * 1024)
+                    size -= 1048576
+                    allsize1 += 1048576
+                    progress = ((size1 - size) / size1)
+                    allprogress = (allsize1 / allsize)
+                    Time1 = time.time()
+                    check.m_staticText1.SetLabelText(language.s66() + timeformat(int((Time1 - Time) // 1)))
+                    check.m_staticText4.SetLabelText(language.s67() + intformat(size1 - size) + ' ' + language.s73())
+                    check.m_staticText5.SetLabelText(language.s68() + str('%.2f' % (progress * 100)) + '%')
+                    check.m_gauge1.SetValue(int('%.0f' % (progress * 10000)))
+                    check.m_staticText6.SetLabelText(language.s69() + str('%.2f' % (allprogress * 100)) + '%')
+                    check.m_gauge2.SetValue(int('%.0f' % (allprogress * 10000)))
+                    crc = zlib.crc32(block, crc)
+                block = f.read()
+                if block:
+                    crc = zlib.crc32(block, crc)
+            check.m_staticText5.SetLabelText(language.s68() + '100.00%')
+            check.m_gauge1.SetValue(10000)
+            allsize1 += size
+            allprogress = (allsize1 / allsize)
+            check.m_staticText4.SetLabelText(language.s67() + intformat(size1) + ' ' + language.s73())
+            check.m_staticText6.SetLabelText(language.s69() + str('%.2f' % (allprogress * 100)) + '%')
+            check.m_gauge2.SetValue(int('%.0f' % (allprogress * 10000)))
+            information.append(timeformat(int(Time1 - Time2) // 1))
+            Time2 = time.time()
+            return str(hex(crc))[2:].upper()  # 输出计算结果
 
         def gethash():
             global Time, Time2, allsize, allsize1, ischeck, information, size, count
@@ -523,21 +598,41 @@ class main(wx.Frame):
                         if self.m_choice1.GetString(self.m_choice1.GetSelection()) == 'MD5':
                             listitems[i][3] = filehash(check, listitems[i][2],
                                                                      hashlib.md5())
-                        elif self.m_choice1.GetString(self.m_choice1.GetSelection()) == 'SHA1':
+                        elif self.m_choice1.GetString(self.m_choice1.GetSelection()) == 'SHA-1':
                             listitems[i][3] = filehash(check, listitems[i][2],
                                                                      hashlib.sha1())
-                        elif self.m_choice1.GetString(self.m_choice1.GetSelection()) == 'SHA224':
+                        elif self.m_choice1.GetString(self.m_choice1.GetSelection()) == 'SHA-224':
                             listitems[i][3] = filehash(check, listitems[i][2],
                                                                      hashlib.sha224())
-                        elif self.m_choice1.GetString(self.m_choice1.GetSelection()) == 'SHA256':
+                        elif self.m_choice1.GetString(self.m_choice1.GetSelection()) == 'SHA-256':
                             listitems[i][3] = filehash(check, listitems[i][2],
                                                                      hashlib.sha256())
-                        elif self.m_choice1.GetString(self.m_choice1.GetSelection()) == 'SHA384':
+                        elif self.m_choice1.GetString(self.m_choice1.GetSelection()) == 'SHA-384':
                             listitems[i][3] = filehash(check, listitems[i][2],
                                                                      hashlib.sha384())
-                        elif self.m_choice1.GetString(self.m_choice1.GetSelection()) == 'SHA512':
+                        elif self.m_choice1.GetString(self.m_choice1.GetSelection()) == 'SHA-512':
                             listitems[i][3] = filehash(check, listitems[i][2],
                                                                      hashlib.sha512())
+                        elif self.m_choice1.GetString(self.m_choice1.GetSelection()) == 'SHA3-224':
+                            listitems[i][3] = filehash(check, listitems[i][2],
+                                                                     hashlib.sha3_224())
+                        elif self.m_choice1.GetString(self.m_choice1.GetSelection()) == 'SHA3-256':
+                            listitems[i][3] = filehash(check, listitems[i][2],
+                                                                     hashlib.sha3_256())
+                        elif self.m_choice1.GetString(self.m_choice1.GetSelection()) == 'SHA3-384':
+                            listitems[i][3] = filehash(check, listitems[i][2],
+                                                                     hashlib.sha3_384())
+                        elif self.m_choice1.GetString(self.m_choice1.GetSelection()) == 'SHA3-512':
+                            listitems[i][3] = filehash(check, listitems[i][2],
+                                                                     hashlib.sha3_512())
+                        elif self.m_choice1.GetString(self.m_choice1.GetSelection()) == 'BLAKE2b':
+                            listitems[i][3] = filehash(check, listitems[i][2],
+                                                                     hashlib.blake2b())
+                        elif self.m_choice1.GetString(self.m_choice1.GetSelection()) == 'BLAKE2s':
+                            listitems[i][3] = filehash(check, listitems[i][2],
+                                                                     hashlib.blake2s())
+                        elif self.m_choice1.GetString(self.m_choice1.GetSelection()) == 'CRC-32':
+                            listitems[i][3] = filecrc32(check, listitems[i][2])
                     except Exception as err:
                         information.append(type(err).__name__ + ': ' + str(err))
                         allsize1 = allsize1 + size
@@ -836,20 +931,22 @@ class MyDialog1(wx.Dialog):
     def __init__(self, parent):
         global command, export, isexport, languagelist
         wx.Dialog.__init__(self, parent, id=wx.ID_ANY, title=language.s24(), pos=wx.DefaultPosition,
-                           size=wx.Size(int('%.0f' % (600 * wx.GetDisplayPPI()[0] / 96)),
-                                        int('%.0f' % (400 * wx.GetDisplayPPI()[0] / 96))),
+                           size=wx.Size(600, 400),
                            style=wx.DEFAULT_DIALOG_STYLE)
-
+        self.SetSize(wx.Size(int('%.0f' % (600 * self.GetDPI()[0] / 96)),
+                                        int('%.0f' % (400 * self.GetDPI()[0] / 96))))
         main.Disable(frame)
 
-        self.SetSizeHints(wx.Size(int('%.0f' % (600 * wx.GetDisplayPPI()[0] / 96)),
-                                  int('%.0f' % (400 * wx.GetDisplayPPI()[0] / 96))),
-                          wx.Size(int('%.0f' % (600 * wx.GetDisplayPPI()[0] / 96)),
-                                  int('%.0f' % (400 * wx.GetDisplayPPI()[0] / 96))))
+        self.SetSizeHints(wx.Size(int('%.0f' % (600 * self.GetDPI()[0] / 96)),
+                                  int('%.0f' % (400 * self.GetDPI()[0] / 96))),
+                          wx.Size(int('%.0f' % (600 * self.GetDPI()[0] / 96)),
+                                  int('%.0f' % (400 * self.GetDPI()[0] / 96))))
 
         bSizer5 = wx.BoxSizer(wx.VERTICAL)
 
         self.m_listbook1 = wx.Listbook(self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.LB_DEFAULT)
+        list_ctrl = self.m_listbook1.GetListView()
+        list_ctrl.SetColumnWidth(0, int('%.0f' % (80 * self.GetDPI()[0] / 96)))
         self.m_panel1 = wx.Panel(self.m_listbook1, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.TAB_TRAVERSAL)
         bSizer7 = wx.BoxSizer(wx.VERTICAL)
 
@@ -881,7 +978,7 @@ class MyDialog1(wx.Dialog):
         gSizer4.Add(self.m_radioBtn4, 0, wx.ALL, 5)
 
         self.m_textCtrl4 = wx.TextCtrl(sbSizer1.GetStaticBox(), wx.ID_ANY, wx.EmptyString, wx.DefaultPosition,
-                                       wx.Size(int('%.0f' % (450 * wx.GetDisplayPPI()[0] / 96)), -1), 0)
+                                       wx.Size(int('%.0f' % (450 * self.GetDPI()[0] / 96)), -1), 0)
         self.m_textCtrl4.SetValue(command)
         if command == '':
             self.m_radioBtn1.SetValue(True)
@@ -907,7 +1004,7 @@ class MyDialog1(wx.Dialog):
         self.m_filePicker2 = wx.FilePickerCtrl(sbSizer7.GetStaticBox(), wx.ID_ANY, wx.EmptyString, language.s32(),
                                                language.s33(),
                                                wx.DefaultPosition,
-                                               wx.Size(int('%.0f' % (450 * wx.GetDisplayPPI()[0] / 96)), -1),
+                                               wx.Size(int('%.0f' % (450 * self.GetDPI()[0] / 96)), -1),
                                                wx.FLP_SAVE | wx.FLP_OVERWRITE_PROMPT | wx.FLP_SMALL | wx.FLP_USE_TEXTCTRL)
         if not isexport:
             self.m_filePicker2.Enable(False)
@@ -1085,15 +1182,15 @@ class MyDialog2(wx.Dialog):
         global fah
         fah = ''
         wx.Dialog.__init__(self, parent, id=wx.ID_ANY, title=title, pos=wx.DefaultPosition,
-                           size=wx.Size(int('%.0f' % (300 * wx.GetDisplayPPI()[0] / 96)),
-                                        int('%.0f' % (135 * wx.GetDisplayPPI()[0] / 96))),
+                           size=wx.Size(300, 135),
                            style=wx.DEFAULT_DIALOG_STYLE)
-
+        self.SetSize(wx.Size(int('%.0f' % (300 * self.GetDPI()[0] / 96)),
+                                        int('%.0f' % (135 * self.GetDPI()[0] / 96))))
         self.SetSizeHints(wx.DefaultSize, wx.DefaultSize)
 
         bSizer4 = wx.BoxSizer(wx.VERTICAL)
 
-        #bSizer4.Add((0, int('%.0f' % (10 * wx.GetDisplayPPI()[0] / 96))), 0, 0, 5)
+        #bSizer4.Add((0, int('%.0f' % (10 * self.GetDPI()[0] / 96))), 0, 0, 5)
 
         self.m_textCtrl1 = wx.TextCtrl(self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition,
                                        wx.Size(-1, -1), 0)
@@ -1101,22 +1198,24 @@ class MyDialog2(wx.Dialog):
             self.m_textCtrl1.SetValue(frame.m_listCtrl2.GetItemText(frame.m_listCtrl2.GetFocusedItem(), 3))
         bSizer4.Add(self.m_textCtrl1, 0, wx.ALL | wx.EXPAND, 5)
 
-        self.m_staticText11 = wx.StaticText(self, wx.ID_ANY, language.s36() + language.s43(), wx.DefaultPosition,
+        self.m_staticText11 = wx.StaticText(self, wx.ID_ANY, language.s36([]), wx.DefaultPosition,
                                             wx.DefaultSize, 0)
-        if len(list(self.m_textCtrl1.GetValue())) == 32:
-            self.m_staticText11.SetLabelText(language.s36() + 'MD5')
+        if len(list(self.m_textCtrl1.GetValue())) == 8:
+            self.m_staticText11.SetLabelText(language.s36(['CRC-32']))
+        elif len(list(self.m_textCtrl1.GetValue())) == 32:
+            self.m_staticText11.SetLabelText(language.s36(['MD5']))
         elif len(list(self.m_textCtrl1.GetValue())) == 40:
-            self.m_staticText11.SetLabelText(language.s36() + 'SHA1')
+            self.m_staticText11.SetLabelText(language.s36(['SHA1']))
         elif len(list(self.m_textCtrl1.GetValue())) == 56:
-            self.m_staticText11.SetLabelText(language.s36() + 'SHA224')
+            self.m_staticText11.SetLabelText(language.s36(['SHA-224', 'SHA3-224']))
         elif len(list(self.m_textCtrl1.GetValue())) == 64:
-            self.m_staticText11.SetLabelText(language.s36() + 'SHA256')
+            self.m_staticText11.SetLabelText(language.s36(['SHA-256', 'SHA3-256', 'BLAKE2s']))
         elif len(list(self.m_textCtrl1.GetValue())) == 96:
-            self.m_staticText11.SetLabelText(language.s36() + 'SHA384')
+            self.m_staticText11.SetLabelText(language.s36(['SHA-384', 'SHA3-384']))
         elif len(list(self.m_textCtrl1.GetValue())) == 128:
-            self.m_staticText11.SetLabelText(language.s36() + 'SHA512')
+            self.m_staticText11.SetLabelText(language.s36(['SHA-512', 'SHA3-512', 'BLAKE2b']))
         else:
-            self.m_staticText11.SetLabelText(language.s36() + language.s43())
+            self.m_staticText11.SetLabelText(language.s36([]))
 
         self.m_staticText11.Wrap(-1)
 
@@ -1150,20 +1249,22 @@ class MyDialog2(wx.Dialog):
         self.Destroy()
 
     def gethash(self, event):
-        if len(list(self.m_textCtrl1.GetValue())) == 32:
-            self.m_staticText11.SetLabelText(language.s36() + 'MD5')
+        if len(list(self.m_textCtrl1.GetValue())) == 8:
+            self.m_staticText11.SetLabelText(language.s36(['CRC32']))
+        elif len(list(self.m_textCtrl1.GetValue())) == 32:
+            self.m_staticText11.SetLabelText(language.s36(['MD5']))
         elif len(list(self.m_textCtrl1.GetValue())) == 40:
-            self.m_staticText11.SetLabelText(language.s36() + 'SHA1')
+            self.m_staticText11.SetLabelText(language.s36(['SHA1']))
         elif len(list(self.m_textCtrl1.GetValue())) == 56:
-            self.m_staticText11.SetLabelText(language.s36() + 'SHA224')
+            self.m_staticText11.SetLabelText(language.s36(['SHA-224', 'SHA3-224']))
         elif len(list(self.m_textCtrl1.GetValue())) == 64:
-            self.m_staticText11.SetLabelText(language.s36() + 'SHA256')
+            self.m_staticText11.SetLabelText(language.s36(['SHA-256', 'SHA3-256', 'BLAKE2s']))
         elif len(list(self.m_textCtrl1.GetValue())) == 96:
-            self.m_staticText11.SetLabelText(language.s36() + 'SHA384')
+            self.m_staticText11.SetLabelText(language.s36(['SHA-384', 'SHA3-384']))
         elif len(list(self.m_textCtrl1.GetValue())) == 128:
-            self.m_staticText11.SetLabelText(language.s36() + 'SHA512')
+            self.m_staticText11.SetLabelText(language.s36(['SHA-512', 'SHA3-512', 'BLAKE2b']))
         else:
-            self.m_staticText11.SetLabelText(language.s36() + language.s43())
+            self.m_staticText11.SetLabelText(language.s36([]))
 
     def add(self, event):
         global information
@@ -1186,20 +1287,22 @@ class MyDialog3(wx.Dialog):
 
     def __init__(self, parent):
         wx.Dialog.__init__(self, parent, id=wx.ID_ANY, title=language.s44(), pos=wx.DefaultPosition,
-                           size=wx.Size(int('%.0f' % (450 * wx.GetDisplayPPI()[0] / 96)),
-                                        int('%.0f' % (270 * wx.GetDisplayPPI()[0] / 96))),
+                           size=wx.Size(450, 270),
                            style=wx.DEFAULT_DIALOG_STYLE)
-
+        self.SetSize(wx.Size(int('%.0f' % (450 * self.GetDPI()[0] / 96)),
+                                        int('%.0f' % (270 * self.GetDPI()[0] / 96))))
         main.Disable(frame)
 
         self.SetSizeHints(wx.DefaultSize, wx.DefaultSize)
 
         bSizer6 = wx.BoxSizer(wx.VERTICAL)
 
-        self.m_bitmap1 = wx.StaticBitmap(self, wx.ID_ANY, wx.Bitmap(u"Logo.bmp", wx.BITMAP_TYPE_ANY),
-                                         wx.DefaultPosition, wx.Size(int('%.0f' % (100 * wx.GetDisplayPPI()[0] / 96)),
-                                                                     int('%.0f' % (100 * wx.GetDisplayPPI()[0] / 96))),
+        self.m_bitmap1 = wx.StaticBitmap(self, wx.ID_ANY,
+                                         wx.Bitmap("Logo.bmp", wx.BITMAP_TYPE_ANY),
+                                         wx.DefaultPosition, wx.Size(int('%.0f' % (100 * self.GetDPI()[0] / 96)),
+                                                                     int('%.0f' % (100 * self.GetDPI()[0] / 96))),
                                          0)
+        #self.m_bitmap1.SetScaleMode()
         bSizer6.Add(self.m_bitmap1, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 5)
 
         self.m_staticText1 = wx.StaticText(self, wx.ID_ANY,
@@ -1244,12 +1347,12 @@ class MyDialog4(wx.Frame):
 
     def __init__(self, parent):
         wx.Frame.__init__(self, parent, id=wx.ID_ANY, title=language.s70(), pos=wx.DefaultPosition,
-                          size=wx.Size(int('%.0f' % (550 * wx.GetDisplayPPI()[0] / 96)),
-                                       int('%.0f' % (280 * wx.GetDisplayPPI()[0] / 96))),
+                          size=wx.Size(550, 280),
                           style=wx.DEFAULT_DIALOG_STYLE ^ wx.CLOSE_BOX)
-
-        self.SetSizeHints(wx.DefaultSize, wx.Size(int('%.0f' % (750 * wx.GetDisplayPPI()[0] / 96)),
-                                                  int('%.0f' % (450 * wx.GetDisplayPPI()[0] / 96))))
+        self.SetSize(wx.Size(int('%.0f' % (550 * self.GetDPI()[0] / 96)),
+                                       int('%.0f' % (280 * self.GetDPI()[0] / 96))))
+        self.SetSizeHints(wx.DefaultSize, wx.Size(int('%.0f' % (750 * self.GetDPI()[0] / 96)),
+                                                  int('%.0f' % (450 * self.GetDPI()[0] / 96))))
         self.SetForegroundColour(wx.SystemSettings.GetColour(wx.SYS_COLOUR_DESKTOP))
         self.SetBackgroundColour(wx.SystemSettings.GetColour(wx.SYS_COLOUR_MENU))
 
@@ -1282,8 +1385,8 @@ class MyDialog4(wx.Frame):
         bSizer1.Add(self.m_staticText5, 0, wx.ALL, 5)
 
         self.m_gauge1 = wx.Gauge(self, wx.ID_ANY, 10000, wx.DefaultPosition,
-                                 wx.Size(int('%.0f' % (500 * wx.GetDisplayPPI()[0] / 96)),
-                                         int('%.0f' % (25 * wx.GetDisplayPPI()[0] / 96))), wx.GA_HORIZONTAL)
+                                 wx.Size(int('%.0f' % (500 * self.GetDPI()[0] / 96)),
+                                         int('%.0f' % (25 * self.GetDPI()[0] / 96))), wx.GA_HORIZONTAL)
         self.m_gauge1.SetValue(0)
         bSizer1.Add(self.m_gauge1, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 5)
 
@@ -1293,8 +1396,8 @@ class MyDialog4(wx.Frame):
         bSizer1.Add(self.m_staticText6, 0, wx.ALL, 5)
 
         self.m_gauge2 = wx.Gauge(self, wx.ID_ANY, 10000, wx.DefaultPosition,
-                                 wx.Size(int('%.0f' % (500 * wx.GetDisplayPPI()[0] / 96)),
-                                         int('%.0f' % (25 * wx.GetDisplayPPI()[0] / 96))),
+                                 wx.Size(int('%.0f' % (500 * self.GetDPI()[0] / 96)),
+                                         int('%.0f' % (25 * self.GetDPI()[0] / 96))),
                                  wx.GA_HORIZONTAL | wx.GA_PROGRESS)
         self.m_gauge2.SetValue(0)
         bSizer1.Add(self.m_gauge2, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 5)
@@ -1321,10 +1424,10 @@ class MyDialog5(wx.Dialog):
         global encoding, file
         main.Disable(frame)
         wx.Dialog.__init__(self, parent, id=wx.ID_ANY, title=language.s50() + ' - ' + file,
-                           pos=wx.DefaultPosition, size=wx.Size(int('%.0f' % (500 * wx.GetDisplayPPI()[0] / 96)),
-                                                                int('%.0f' % (400 * wx.GetDisplayPPI()[0] / 96))),
+                           pos=wx.DefaultPosition, size=wx.Size(500, 400),
                            style=wx.DEFAULT_DIALOG_STYLE)
-
+        self.SetSize(wx.Size(int('%.0f' % (500 * self.GetDPI()[0] / 96)),
+                                                                int('%.0f' % (400 * self.GetDPI()[0] / 96))))
         self.SetSizeHints(wx.DefaultSize, wx.DefaultSize)
 
         bSizer10 = wx.BoxSizer(wx.VERTICAL)
@@ -1357,8 +1460,8 @@ class MyDialog5(wx.Dialog):
                              'UTF-16-BE', 'UTF-16-LE', 'UTF-32', 'UTF-32-BE', 'UTF-32-LE', 'UTF-7', 'UTF-8',
                              'UTF-8-SIG']
         self.m_listBox1 = wx.ListBox(self, wx.ID_ANY, wx.DefaultPosition,
-                                     wx.Size(int('%.0f' % (230 * wx.GetDisplayPPI()[0] / 96)),
-                                             int('%.0f' % (290 * wx.GetDisplayPPI()[0] / 96))), m_listBox1Choices,
+                                     wx.Size(int('%.0f' % (230 * self.GetDPI()[0] / 96)),
+                                             int('%.0f' % (290 * self.GetDPI()[0] / 96))), m_listBox1Choices,
                                      wx.LB_NEEDED_SB | wx.LB_SINGLE)
         try:
             self.m_listBox1.SetSelection(m_listBox1Choices.index(coding.upper()))
@@ -1449,10 +1552,10 @@ class MyDialog6(wx.Dialog):
     def __init__(self, parent):
         global information
         wx.Dialog.__init__(self, parent, id=wx.ID_ANY, title=language.s92(), pos=wx.DefaultPosition,
-                           size=wx.Size(int('%.0f' % (500 * wx.GetDisplayPPI()[0] / 96)),
-                                        int('%.0f' % (300 * wx.GetDisplayPPI()[0] / 96))),
+                           size=wx.Size(500, 300),
                            style=wx.DEFAULT_DIALOG_STYLE)
-
+        self.SetSize(wx.Size(int('%.0f' % (500 * self.GetDPI()[0] / 96)),
+                                        int('%.0f' % (300 * self.GetDPI()[0] / 96))))
         self.SetSizeHints(wx.DefaultSize, wx.DefaultSize)
 
         bSizer9 = wx.BoxSizer(wx.VERTICAL)
