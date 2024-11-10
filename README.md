@@ -12,7 +12,7 @@
     </a>
 </p>
 
-[简体中文](README_Chinese_Simplified.md)  [繁体中文](README_Chinese_Traditional.md)
+[简体中文](README_Chinese_Simplified.md)  [繁體中文](README_Chinese_Traditional.md)
 
 ![home_en](https://s3.bmp.ovh/imgs/2024/11/10/d503c93c85092e30.png)
 
