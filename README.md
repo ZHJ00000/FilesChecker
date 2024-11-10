@@ -16,7 +16,7 @@
 
 ![home_en](https://s3.bmp.ovh/imgs/2024/11/10/d503c93c85092e30.png)
 
-The file validator is a simple and easy-to-use batch file validation tool that supports algorithms such as MD5, SHA-1, SHA-256, SHA3 series, CRC-32, etc.
+FilesChecker is a simple and easy-to-use batch file validation tool that supports algorithms such as MD5, SHA-1, SHA-256, SHA3 series, CRC-32, etc.
 
 ## Downloads
 
