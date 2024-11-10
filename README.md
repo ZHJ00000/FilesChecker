@@ -1,4 +1,4 @@
-# Files Checker
+# FilesChecker
 
 <p align="center">
     <a href="https://github.com/ZHJ00000/ZHJ-Files-Checker/stargazers" style="text-decoration:none" >
