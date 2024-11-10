@@ -14,7 +14,7 @@
 
 [English](README.md)  [简体中文](README_Chinese_Simplified.md)
 
-![home_cns](https://s3.bmp.ovh/imgs/2024/11/10/ba3fe344c04d091f.png)
+![home_cnt](https://s3.bmp.ovh/imgs/2024/11/10/8fd056ad7c6e0c9b.png)
 
 文件校驗器是一款簡單易用的批量檔校驗工具，支持MD5、SHA-1、SHA-256、SHA3系列、CRC-32等算灋。
 
