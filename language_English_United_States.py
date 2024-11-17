@@ -1,6 +1,6 @@
 # coding=utf-8
 # Copyright ©2024 ZHJ. All Rights Reserved.
-# Beta 4
+# Beta 5
 FOR = ['FilesChecker Beta', 3.0, 'Windows']
 LANGUAGE = ['English_United_States', 'English (United States)']
 def s1():
@@ -12,9 +12,9 @@ def s3():
 def s4():
     return 'Add C&hecksum…'
 def s5():
-    return '&Open Task…'
+    return '&Open Task List…'
 def s6():
-    return '&Save Task…'
+    return '&Save Task List…'
 def s7():
     return '&Export Check Result…'
 def s8():
@@ -32,7 +32,7 @@ def s13():
 def s14():
     return 'Add &File…'
 def s15():
-    return 'Add C%hecksum…'
+    return 'Add C&hecksum…'
 def s16():
     return 'Start Chec&k'
 def s17():
@@ -95,7 +95,7 @@ def s43():
 def s44():
     return 'About'
 def s45():
-    return 'FilesChecker v3.0 Beta4'
+    return 'FilesChecker v3.0 Beta5'
 def s46():
     return 'The language pack is not installed.'
 def s47(pyver, wxver):
@@ -103,7 +103,7 @@ def s47(pyver, wxver):
 def s48():
     return 'Text Document (*.txt)|*.txt|All files (*.*)|*.*'
 def s49():
-    return 'Open Task'
+    return 'Open Task List'
 def s50():
     return 'Open Text Document'
 def s51():
@@ -117,17 +117,17 @@ def s54():
 def s55():
     return 'Unable to read file: '
 def s56():
-    return 'Error reading task: '
+    return 'Error reading task list: '
 def s57():
     return '&OK'
 def s58():
-    return 'Task error: Unsupported algorithm.'
+    return 'Task list error: Unsupported algorithm.'
 def s59():
-    return 'Task error: The data type is not defined.'
+    return 'Task list error: The data type is not defined.'
 def s60():
-    return 'Save Task'
+    return 'Save Task List'
 def s61():
-    return 'No data can be added in the task.'
+    return 'No data can be added in the task list.'
 def s62():
     return 'Warning'
 def s63():
@@ -177,7 +177,7 @@ def s84():
 def s85():
     return 'Running Command: '
 def s86():
-    return 'Saving Task: '
+    return 'Saving Task List: '
 def s87():
     return 'Re-Select File'
 def s88():
@@ -216,3 +216,23 @@ def s104():
     return 'Exit this software.'
 def s105():
     return 'Display software information, version number, and copyright.'
+def s106():
+    return 'Task List'
+def s107():
+    return 'Use encoding when saving task list:'
+def s108():
+    return 'Check Result'
+def s109():
+    return 'Use encoding when exporting check result:'
+def s110():
+    return '&Restore Default Settings'
+def s111():
+    return 'File Encoding'
+def s112():
+    return 'The user cancelled the operation.'
+def s113():
+    return '&Pause'
+def s114():
+    return '&Continue'
+def s115():
+    return 'Are you sure you want to cancel?'
