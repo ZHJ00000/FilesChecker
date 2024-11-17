@@ -1,6 +1,6 @@
 # coding=utf-8
 # Copyright ©2024 ZHJ. All Rights Reserved.
-# Beta 4
+# Beta 5
 FOR = ['FilesChecker Beta', (3, 0), 'Windows']
 LANGUAGE = ['Chinese__Traditional__Macao_SAR', '繁體中文 (中國澳門特別行政區)']
 def s1():
@@ -12,9 +12,9 @@ def s3():
 def s4():
     return '添加校驗和(&H)…'
 def s5():
-    return '導入任務列表(&O)…'
+    return '導入任務清單(&O)…'
 def s6():
-    return '保存任務列表(&S)…'
+    return '保存任務清單(&S)…'
 def s7():
     return '匯出校驗結果(&E)…'
 def s8():
@@ -95,7 +95,7 @@ def s43():
 def s44():
     return '關於'
 def s45():
-    return '文件校驗器 v3.0 Beta4'
+    return '文件校驗器 v3.0 Beta5'
 def s46():
     return '未安裝該語言包。'
 def s47(pyver, wxver):
@@ -103,7 +103,7 @@ def s47(pyver, wxver):
 def s48():
     return '文字文件 (*.txt)|*.txt|所有檔案 (*.*)|*.*'
 def s49():
-    return '導入任務列表'
+    return '導入任務清單'
 def s50():
     return '打開文本文檔'
 def s51():
@@ -117,7 +117,7 @@ def s54():
 def s55():
     return '無法讀取文件：'
 def s56():
-    return '無法讀取任務列表：'
+    return '無法讀取任務清單：'
 def s57():
     return '確定(&O)'
 def s58():
@@ -125,7 +125,7 @@ def s58():
 def s59():
     return '任務清單錯誤：未定義資料類型。'
 def s60():
-    return '保存任務列表'
+    return '保存任務清單'
 def s61():
     return '任務清單中不含任何可添加資料。'
 def s62():
@@ -177,7 +177,7 @@ def s84():
 def s85():
     return '正在運行命令：'
 def s86():
-    return '正在保存任務列表：'
+    return '正在保存任務清單：'
 def s87():
     return '重新選擇檔'
 def s88():
@@ -205,9 +205,9 @@ def s98():
 def s99():
     return '添加校驗和。'
 def s100():
-    return '從檔載入任務列表。'
+    return '從檔載入任務清單。'
 def s101():
-    return '將任務列表保存到檔。'
+    return '將任務清單保存到檔。'
 def s102():
     return '將校驗結果匯出到檔。'
 def s103():
@@ -216,3 +216,23 @@ def s104():
     return '退出本軟體。'
 def s105():
     return '顯示軟體資訊、版本號和版權。'
+def s106():
+    return '任務清單'
+def s107():
+    return '保存任務清單時使用編碼：'
+def s108():
+    return '校驗結果'
+def s109():
+    return '匯出校驗結果時使用編碼：'
+def s110():
+    return '恢復默認設置(&R)'
+def s111():
+    return '檔案編碼'
+def s112():
+    return '用戶取消了操作。'
+def s113():
+    return '暫停(&P)'
+def s114():
+    return '繼續(&C)'
+def s115():
+    return '你確定要取消嗎？'
