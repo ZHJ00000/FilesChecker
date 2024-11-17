@@ -1,6 +1,6 @@
 # coding=utf-8
 # Copyright ©2024 ZHJ. All Rights Reserved.
-# Beta 4
+# Beta 5
 FOR = ['FilesChecker Beta', (3, 0), 'Windows']
 LANGUAGE = ['Chinese__Simplified__China', '简体中文 (中国大陆)']
 def s1():
@@ -95,7 +95,7 @@ def s43():
 def s44():
     return '关于'
 def s45():
-    return '文件校验器 v3.0 Beta4'
+    return '文件校验器 v3.0 Beta5'
 def s46():
     return '未安装该语言包。'
 def s47(pyver, wxver):
@@ -216,3 +216,23 @@ def s104():
     return '退出本软件。'
 def s105():
     return '显示软件信息、版本号和版权。'
+def s106():
+    return '任务列表'
+def s107():
+    return '保存任务列表时使用编码：'
+def s108():
+    return '校验结果'
+def s109():
+    return '导出校验结果时使用编码：'
+def s110():
+    return '恢复默认设置(&R)'
+def s111():
+    return '文件编码'
+def s112():
+    return '用户取消了操作。'
+def s113():
+    return '暂停(&P)'
+def s114():
+    return '继续(&C)'
+def s115():
+    return '你确定要取消吗？'
