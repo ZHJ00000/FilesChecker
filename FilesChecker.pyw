@@ -35,6 +35,7 @@ def intask(file, encoding):
     try:
         with open(file, 'r', encoding=encoding) as file:
             l = file.readlines()
+            print(l)
     except Exception as err:
         tf = False
         toastone = wx.MessageDialog(None, language.s56() + type(err).__name__ + ': ' + str(err), language.s81(),
@@ -192,6 +193,8 @@ def intask(file, encoding):
                 toastone.Destroy()
         frame.sort(None)
 
+class OperationCancelledError(Exception):
+    pass
 
 class FileDrop(wx.FileDropTarget):
     def __init__(self):
@@ -391,19 +394,21 @@ class main(wx.Frame):
 
     # Virtual event handlers, override them in your derived class
     def exit(self, event):
+        global iscancel
         if ischeck:
             toastone = wx.MessageDialog(None, language.s65(), language.s1(),
                                         wx.YES_NO | wx.NO_DEFAULT | wx.ICON_WARNING)
             toastone.SetYesNoLabels(language.s63(), language.s64())
             if toastone.ShowModal() == wx.ID_YES:  # 如果点击了提示框的确定按钮
                 toastone.Destroy()
-                sys.exit(-1)
+                iscancel = True
+                sys.exit(0)
         else:
             sys.exit(0)
 
     def export(self, path):
         try:
-            with open(path, 'w', encoding='ansi') as file:
+            with open(path, 'w', encoding=setting[2]) as file:
                 file.write(language.s17() + ',' + language.s18() + ',' + language.s19() + ',' + language.s20() + '\n')
                 for i in range(0, frame.m_listCtrl2.GetItemCount()):
                     for ii in range(0, 4):
@@ -448,12 +453,20 @@ class main(wx.Frame):
             return string
 
         def filehash(self, path, algorithm):
-            global Time, Time2, allsize, allsize1, information, size
+            global Time, Time2, allsize, allsize1, information, size, ispause, iscancel
             size = os.path.getsize(path)  # 获取文件大小，单位是字节（byte）
             size1 = size
+            if iscancel:
+                raise OperationCancelledError(language.s112())
             with open(path, 'rb') as f:  # 以二进制模式读取文件
                 Time1 = time.time()
                 while size >= 1048576:  # 当文件大于1MB时将文件分块读取
+                    if iscancel:
+                        raise OperationCancelledError(language.s112())
+                    if ispause:
+                        while ispause:
+                            if iscancel:
+                                raise OperationCancelledError(language.s112())
                     algorithm.update(f.read(1024 * 1024))
                     size -= 1048576
                     allsize1 += 1048576
@@ -479,13 +492,21 @@ class main(wx.Frame):
             return algorithm.hexdigest()  # 输出计算结果
 
         def filecrc32(self, path):
-            global Time, Time2, allsize, allsize1, information, size
+            global Time, Time2, allsize, allsize1, information, size, ispause, iscancel
             size = os.path.getsize(path)  # 获取文件大小，单位是字节（byte）
             size1 = size
             crc = 0
+            if iscancel:
+                raise OperationCancelledError(language.s112())
             with open(path, 'rb') as f:  # 以二进制模式读取文件
                 Time1 = time.time()
                 while size >= 1048576:  # 当文件大于1MB时将文件分块读取
+                    if iscancel:
+                        raise OperationCancelledError(language.s112())
+                    if ispause:
+                        while ispause:
+                            if iscancel:
+                                raise OperationCancelledError(language.s112())
                     block = f.read(1024 * 1024)
                     size -= 1048576
                     allsize1 += 1048576
@@ -511,11 +532,16 @@ class main(wx.Frame):
             check.m_gauge2.SetValue(int('%.0f' % (allprogress * 10000)))
             information.append(timeformat(int(Time1 - Time2) // 1))
             Time2 = time.time()
-            return str(hex(crc))[2:].upper()  # 输出计算结果
+            if len(str(hex(crc))[2:].lower()) < 8:
+                return '0' * (8 - len(str(hex(crc))[2:].lower())) + str(hex(crc))[2:].lower()
+            else:
+                return str(hex(crc))[2:].lower()  # 输出计算结果
 
         def gethash():
-            global Time, Time2, allsize, allsize1, ischeck, information, size, count
+            global Time, Time2, allsize, allsize1, ischeck, information, size, count, ispause, iscancel
             ischeck = True
+            ispause = False
+            iscancel = False
             self.SetStatusText(language.s82())
             self.m_menuItem1.Enable(False)
             self.m_menuItem2.Enable(False)
@@ -732,8 +758,41 @@ class main(wx.Frame):
                 with open(file, 'rb') as f:
                     coding = f.readline().decode('ascii').rstrip()
             except UnicodeDecodeError:
-                encodingpick = MyDialog5(None, 'utf-8')
-                encodingpick.Show()
+                with open(file, 'rb') as f:
+                    coding = f.readline()
+                if coding.startswith(b'\xef\xbb\xbf'):
+                    try:
+                        intask(file, 'utf-8')
+                    except UnicodeDecodeError:
+                        encodingpick = MyDialog5(None, 'utf-8')
+                        encodingpick.Show()
+                elif coding.startswith(b'\x00\x00\xfe\xff') or coding.startswith(b'\xff\xfe\x00\x00'):
+                    try:
+                        intask(file, 'utf-32')
+                    except UnicodeDecodeError:
+                        encodingpick = MyDialog5(None, 'utf-32')
+                        encodingpick.Show()
+                elif coding.startswith(b'\xfe\xff') or coding.startswith(b'\xff\xfe'):
+                    try:
+                        intask(file, 'utf-16')
+                    except UnicodeDecodeError:
+                        encodingpick = MyDialog5(None, 'utf-16')
+                        encodingpick.Show()
+                elif coding.startswith(b'\x2b\x2f\x76'):
+                    try:
+                        intask(file, 'utf-7')
+                    except UnicodeDecodeError:
+                        encodingpick = MyDialog5(None, 'utf-7')
+                        encodingpick.Show()
+                elif coding.startswith(b'\x84\x31\x95\x33'):
+                    try:
+                        intask(file, 'gb18030')
+                    except UnicodeDecodeError:
+                        encodingpick = MyDialog5(None, 'gb18030')
+                        encodingpick.Show()
+                else:
+                    encodingpick = MyDialog5(None, 'utf-8')
+                    encodingpick.Show()
             else:
                 if coding[:9] == '# coding=':
                     try:
@@ -766,9 +825,10 @@ class main(wx.Frame):
         if dlg.ShowModal() == wx.ID_OK:
             self.SetStatusText(language.s86() + dlg.GetPath())
             try:
-                with open(dlg.GetPath(), 'w', encoding='utf-8') as file:
+                with open(dlg.GetPath(), 'w', encoding=setting[1]) as file:
                     dlg.Destroy()
-                    f = '# coding=utf-8\n' + frame.m_choice1.GetString(frame.m_choice1.GetSelection()) + '\n'
+                    f = '# coding=' + setting[1] + '\n' + frame.m_choice1.GetString(
+                        frame.m_choice1.GetSelection()) + '\n'
                     if frame.m_listCtrl2.GetItemCount() != 0:
                         foha = ''
                         for i in range(0, frame.m_listCtrl2.GetItemCount()):
@@ -1018,6 +1078,74 @@ class MyDialog1(wx.Dialog):
         self.m_panel1.Layout()
         bSizer7.Fit(self.m_panel1)
         self.m_listbook1.AddPage(self.m_panel1, language.s34(), True)
+
+        self.m_panel3 = wx.Panel(self.m_listbook1, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.TAB_TRAVERSAL)
+        bSizer12 = wx.BoxSizer(wx.VERTICAL)
+
+        sbSizer4 = wx.StaticBoxSizer(wx.StaticBox(self.m_panel3, wx.ID_ANY, language.s106()), wx.VERTICAL)
+
+        gSizer5 = wx.GridSizer(0, 2, 0, 0)
+
+        self.m_staticText12 = wx.StaticText(sbSizer4.GetStaticBox(), wx.ID_ANY, language.s107(),
+                                            wx.DefaultPosition, wx.DefaultSize, 0)
+        self.m_staticText12.Wrap(-1)
+
+        gSizer5.Add(self.m_staticText12, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
+
+        m_choice2Choices = ['ANSI', 'ASCII', 'BIG5', 'BIG5HKSCS', 'CHARMAP', 'CP037', 'CP1006', 'CP1026', 'CP1125',
+                             'CP1140', 'CP1250', 'CP1251', 'CP1252', 'CP1253', 'CP1254', 'CP1255', 'CP1256', 'CP1257',
+                             'CP1258',
+                             'CP273', 'CP424', 'CP437', 'CP500', 'CP720', 'CP737', 'CP775', 'CP850', 'CP852', 'CP855',
+                             'CP856', 'CP857', 'CP858', 'CP860', 'CP861', 'CP862', 'CP863', 'CP864', 'CP865', 'CP866',
+                             'CP869', 'CP874', 'CP875', 'CP932', 'CP949', 'CP950', 'EUC_JISX0213', 'EUC_JIS_2004',
+                             'EUC_JP', 'EUC_KR', 'GB18030', 'GB2312', 'GBK', 'HP_ROMAN8', 'HZ', 'IDNA', 'ISO2022_JP',
+                             'ISO2022_JP_1', 'ISO2022_JP_2', 'ISO2022_JP_2004', 'ISO2022_JP_3', 'ISO2022_JP_EXT',
+                             'ISO2022_KR', 'ISO8859_1', 'ISO8859_10', 'ISO8859_11', 'ISO8859_13', 'ISO8859_14',
+                             'ISO8859_15', 'ISO8859_16', 'ISO8859_2', 'ISO8859_3', 'ISO8859_4', 'ISO8859_5',
+                             'ISO8859_6', 'ISO8859_7', 'ISO8859_8', 'ISO8859_9', 'JOHAB', 'KOI8_R', 'KOI8_T', 'KOI8_U',
+                             'KZ1048', 'LATIN_1', 'MAC_ARABIC', 'MAC_CROATIAN', 'MAC_CYRILLIC', 'MAC_FARSI',
+                             'MAC_GREEK', 'MAC_ICELAND', 'MAC_LATIN2', 'MAC_ROMAN', 'MAC_ROMANIAN', 'MAC_TURKISH',
+                             'MBCS', 'OEM', 'PALMOS', 'PTCP154', 'PUNYCODE', 'RAW_UNICODE_ESCAPE',
+                             'SHIFT_JIS', 'SHIFT_JISX0213', 'SHIFT_JIS_2004', 'TIS_620', 'UNICODE_ESCAPE', 'UTF-16',
+                             'UTF-16-BE', 'UTF-16-LE', 'UTF-32', 'UTF-32-BE', 'UTF-32-LE', 'UTF-7', 'UTF-8',
+                             'UTF-8-SIG']
+        self.m_choice2 = wx.Choice(sbSizer4.GetStaticBox(), wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize,
+                                   m_choice2Choices, 0)
+        self.m_choice2.SetSelection(m_choice2Choices.index(setting[1]))
+        gSizer5.Add(self.m_choice2, 0, wx.ALL | wx.ALIGN_RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
+
+        sbSizer4.Add(gSizer5, 1, wx.EXPAND, 5)
+
+        bSizer12.Add(sbSizer4, 0, wx.EXPAND, 5)
+
+        sbSizer5 = wx.StaticBoxSizer(wx.StaticBox(self.m_panel3, wx.ID_ANY, language.s108()), wx.VERTICAL)
+
+        gSizer6 = wx.GridSizer(0, 2, 0, 0)
+
+        self.m_staticText13 = wx.StaticText(sbSizer5.GetStaticBox(), wx.ID_ANY, language.s109(),
+                                            wx.DefaultPosition, wx.DefaultSize, 0)
+        self.m_staticText13.Wrap(-1)
+
+        gSizer6.Add(self.m_staticText13, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
+
+        m_choice3Choices = m_choice2Choices
+        self.m_choice3 = wx.Choice(sbSizer5.GetStaticBox(), wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize,
+                                   m_choice3Choices, 0)
+        self.m_choice3.SetSelection(m_choice3Choices.index(setting[2]))
+        gSizer6.Add(self.m_choice3, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_RIGHT, 5)
+
+        sbSizer5.Add(gSizer6, 1, wx.EXPAND, 5)
+
+        bSizer12.Add(sbSizer5, 0, wx.EXPAND, 5)
+
+        self.m_button7 = wx.Button(self.m_panel3, wx.ID_ANY, language.s110(), wx.DefaultPosition, wx.DefaultSize, 0)
+        bSizer12.Add(self.m_button7, 0, wx.ALL | wx.ALIGN_RIGHT, 5)
+
+        self.m_panel3.SetSizer(bSizer12)
+        self.m_panel3.Layout()
+        bSizer12.Fit(self.m_panel3)
+        self.m_listbook1.AddPage(self.m_panel3, language.s111(), False)
+
         self.m_panel2 = wx.Panel(self.m_listbook1, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.TAB_TRAVERSAL)
         bSizer6 = wx.BoxSizer(wx.VERTICAL)
 
@@ -1078,6 +1206,7 @@ class MyDialog1(wx.Dialog):
 
         # Connect Events
         self.Bind(wx.EVT_CLOSE, self.close)
+        self.m_button7.Bind(wx.EVT_BUTTON, self.recover)
         self.m_radioBtn1.Bind(wx.EVT_RADIOBUTTON, self.none)
         self.m_radioBtn2.Bind(wx.EVT_RADIOBUTTON, self.shutdown)
         self.m_radioBtn3.Bind(wx.EVT_RADIOBUTTON, self.reboot)
@@ -1103,9 +1232,18 @@ class MyDialog1(wx.Dialog):
         else:
             isexport = self.m_checkBox2.GetValue()
             export = self.m_filePicker2.GetPath()
+            setting[1] = self.m_choice2.GetStringSelection()
+            setting[2] = self.m_choice3.GetStringSelection()
+            with open(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'Setting.ini'), 'w',
+                      encoding='utf-8') as settingfile:
+                for i in setting:
+                    settingfile.write(i + '\n')
             main.Enable(frame)
             self.Destroy()
 
+    def recover(self, event):
+        self.m_choice2.SetSelection(111)
+        self.m_choice3.SetSelection(0)
 
     def changelanguage(self, event):
         global languagelist
@@ -1205,7 +1343,7 @@ class MyDialog2(wx.Dialog):
         elif len(list(self.m_textCtrl1.GetValue())) == 32:
             self.m_staticText11.SetLabelText(language.s36(['MD5']))
         elif len(list(self.m_textCtrl1.GetValue())) == 40:
-            self.m_staticText11.SetLabelText(language.s36(['SHA1']))
+            self.m_staticText11.SetLabelText(language.s36(['SHA-1']))
         elif len(list(self.m_textCtrl1.GetValue())) == 56:
             self.m_staticText11.SetLabelText(language.s36(['SHA-224', 'SHA3-224']))
         elif len(list(self.m_textCtrl1.GetValue())) == 64:
@@ -1250,11 +1388,11 @@ class MyDialog2(wx.Dialog):
 
     def gethash(self, event):
         if len(list(self.m_textCtrl1.GetValue())) == 8:
-            self.m_staticText11.SetLabelText(language.s36(['CRC32']))
+            self.m_staticText11.SetLabelText(language.s36(['CRC-32']))
         elif len(list(self.m_textCtrl1.GetValue())) == 32:
             self.m_staticText11.SetLabelText(language.s36(['MD5']))
         elif len(list(self.m_textCtrl1.GetValue())) == 40:
-            self.m_staticText11.SetLabelText(language.s36(['SHA1']))
+            self.m_staticText11.SetLabelText(language.s36(['SHA-1']))
         elif len(list(self.m_textCtrl1.GetValue())) == 56:
             self.m_staticText11.SetLabelText(language.s36(['SHA-224', 'SHA3-224']))
         elif len(list(self.m_textCtrl1.GetValue())) == 64:
@@ -1347,10 +1485,10 @@ class MyDialog4(wx.Frame):
 
     def __init__(self, parent):
         wx.Frame.__init__(self, parent, id=wx.ID_ANY, title=language.s70(), pos=wx.DefaultPosition,
-                          size=wx.Size(550, 280),
-                          style=wx.DEFAULT_DIALOG_STYLE ^ wx.CLOSE_BOX)
+                          size=wx.Size(550, 315),
+                          style=wx.DEFAULT_DIALOG_STYLE | wx.CLOSE_BOX)
         self.SetSize(wx.Size(int('%.0f' % (550 * self.GetDPI()[0] / 96)),
-                                       int('%.0f' % (280 * self.GetDPI()[0] / 96))))
+                                       int('%.0f' % (315 * self.GetDPI()[0] / 96))))
         self.SetSizeHints(wx.DefaultSize, wx.Size(int('%.0f' % (750 * self.GetDPI()[0] / 96)),
                                                   int('%.0f' % (450 * self.GetDPI()[0] / 96))))
         self.SetForegroundColour(wx.SystemSettings.GetColour(wx.SYS_COLOUR_DESKTOP))
@@ -1402,13 +1540,24 @@ class MyDialog4(wx.Frame):
         self.m_gauge2.SetValue(0)
         bSizer1.Add(self.m_gauge2, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 5)
 
+        m_sdbSizer4 = wx.StdDialogButtonSizer()
+        self.m_sdbSizer4OK = wx.Button(self, wx.ID_OK, language.s113())
+        m_sdbSizer4.AddButton(self.m_sdbSizer4OK)
+        self.m_sdbSizer4Cancel = wx.Button(self, wx.ID_CANCEL, language.s54())
+        m_sdbSizer4.AddButton(self.m_sdbSizer4Cancel)
+        m_sdbSizer4.Realize()
+
+        bSizer1.Add( m_sdbSizer4, 1, wx.EXPAND|wx.TOP|wx.BOTTOM|wx.LEFT, 5 )
+
         self.SetSizer(bSizer1)
         self.Layout()
 
         self.Centre(wx.BOTH)
 
         # Connect Events
-        self.Bind(wx.EVT_CLOSE, self.close)
+        self.Bind(wx.EVT_CLOSE, self.cancel)
+        self.m_sdbSizer4Cancel.Bind(wx.EVT_BUTTON, self.cancel)
+        self.m_sdbSizer4OK.Bind(wx.EVT_BUTTON, self.pause)
 
     def __del__(self):
         pass
@@ -1416,6 +1565,24 @@ class MyDialog4(wx.Frame):
     # Virtual event handlers, override them in your derived class
     def close(self, event):
         pass
+
+    def cancel(self, event):
+        global iscancel
+        toastone = wx.MessageDialog(None, language.s115(), language.s1(),
+                                    wx.YES_NO | wx.NO_DEFAULT | wx.ICON_WARNING)
+        toastone.SetYesNoLabels(language.s63(), language.s64())
+        if toastone.ShowModal() == wx.ID_YES:  # 如果点击了提示框的确定按钮
+            toastone.Destroy()
+            iscancel = True
+
+    def pause(self, event):
+        global ispause
+        if ispause:
+            ispause = False
+            self.m_sdbSizer4OK.SetLabel(language.s113())
+        else:
+            ispause = True
+            self.m_sdbSizer4OK.SetLabel(language.s114())
 
 
 class MyDialog5(wx.Dialog):
@@ -1625,11 +1792,16 @@ if __name__ == '__main__':
             setting = settingfile.readlines()
         for i in range(0, len(setting)):
             setting[i] = setting[i].rstrip()
+        if len(setting) == 1:
+            with open(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'Setting.ini'), 'a',
+                      encoding='utf-8') as settingfile:
+                settingfile.write('UTF-8\nANSI\n')
+            setting.extend(['UTF-8', 'ANSI'])
     except Exception as err:
         with open(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'Setting.ini'), 'w',
                   encoding='utf-8') as settingfile:
-            settingfile.write('Auto')
-            setting = ['Auto']
+            settingfile.write('Auto\nUTF-8\nANSI\n')
+            setting = ['Auto', 'UTF-8', 'ANSI']
     try:
         if setting[0] == 'Auto':
             with open(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'language.py'),
@@ -1644,8 +1816,8 @@ if __name__ == '__main__':
         try:
             with open(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'Setting.ini'), 'w',
                       encoding='utf-8') as settingfile:
-                settingfile.write('language_English_United_States')
-                setting = ['language_English_United_States']
+                settingfile.write('language_English_United_States\nUTF-8\nANSI\n')
+                setting = ['language_English_United_States', 'UTF-8', 'ANSI']
             with open(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'language.py'),
                       'w', encoding='utf-8') as languagefile:
                 languagefile.write('from ' + setting[0] + ' import *')
