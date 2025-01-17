@@ -36,5 +36,5 @@ We currently only provide installation programs for Windows 64 bit and require W
 
 ## Software Languages
 
-At present, English, Simplified Chinese, and Traditional Chinese are available. Developers from all over the world are welcome to provide more language translations for this software. The development documentation will be provided in the coming weeks.
+At present, English, Simplified Chinese, and Traditional Chinese are available. Developers from all over the world are welcome to provide more language translations for this software. The development document can be found [here](https://github.com/ZHJ00000/FilesChecker/wiki/Language%20(Develop)).
 
