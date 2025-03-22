@@ -1,7 +1,7 @@
 # coding=utf-8
-# Copyright ©2024 ZHJ. All Rights Reserved.
+# Copyright ©2025 ZHJ. All Rights Reserved.
 
-import wx, wx.xrc, wx.adv, wx.richtext  # pip install wxPython
+import wx, wx.xrc, wx.adv, wx.richtext, wx.html  # pip install wxPython
 import sys
 import os
 import glob
@@ -14,6 +14,10 @@ import locale
 import zlib
 import platform
 import ctypes
+import markdown  #pip install Markdown
+import subprocess
+import json
+import pyzipper  #pip install pyzipper
 sysver = []
 for i in platform.version().split('.'):
     sysver.append(int(i))
@@ -21,7 +25,7 @@ if tuple(sysver) >= (10, 0, 15063):
     ctypes.windll.user32.SetProcessDpiAwarenessContext(ctypes.c_void_p(-4))
 else:
     ctypes.windll.user32.SetProcessDPIAware()
-locale = locale.getlocale()[0].replace(' ', '_').replace('(', '_').replace(')', '_')
+locale = locale.getlocale()[0]
 
 
 fah = ''
@@ -30,12 +34,12 @@ command = ''
 export = ''
 isexport = False
 os.chdir(os.path.dirname(sys.argv[0]))
+version = (3, 0)
 
 def intask(file, encoding):
     try:
         with open(file, 'r', encoding=encoding) as file:
             l = file.readlines()
-            print(l)
     except Exception as err:
         tf = False
         toastone = wx.MessageDialog(None, language.s56() + type(err).__name__ + ': ' + str(err), language.s81(),
@@ -217,7 +221,7 @@ class FileDrop(wx.FileDropTarget):
 class main(wx.Frame):
 
     def __init__(self, parent):
-        global fah, file, information
+        global fah, file, information, update
         wx.Frame.__init__(self, parent, id=wx.ID_ANY, title=language.s1(), pos=wx.DefaultPosition,
                           size=wx.Size(1000, 600),
                           style=wx.DEFAULT_FRAME_STYLE | wx.MAXIMIZE_BOX | wx.TAB_TRAVERSAL)
@@ -285,6 +289,8 @@ class main(wx.Frame):
         self.m_menubar2.Append(self.m_menu3, language.s11())
 
         self.m_menu5 = wx.Menu()
+        self.m_menuItem171 = wx.MenuItem(self.m_menu5, wx.ID_ANY, language.s116(), wx.EmptyString, wx.ITEM_NORMAL)
+        self.m_menu5.Append(self.m_menuItem171)
         self.m_menuItem7 = wx.MenuItem(self.m_menu5, wx.ID_ANY, language.s12(), language.s105(), wx.ITEM_NORMAL)
         self.m_menu5.Append(self.m_menuItem7)
 
@@ -375,6 +381,7 @@ class main(wx.Frame):
         self.Bind(wx.EVT_MENU, self.clear, id=self.m_menuItem3.GetId())
         self.Bind(wx.EVT_MENU, self.setting, id=self.m_menuItem10.GetId())
         self.Bind(wx.EVT_MENU, self.exit, id=self.m_menuItem6.GetId())
+        self.Bind(wx.EVT_MENU, self.getupdate, id=self.m_menuItem171.GetId())
         self.Bind(wx.EVT_MENU, self.about, id=self.m_menuItem7.GetId())
         self.m_button1.Bind(wx.EVT_BUTTON, self.addfile)
         self.m_button6.Bind(wx.EVT_BUTTON, self.addhash)
@@ -467,6 +474,7 @@ class main(wx.Frame):
                         while ispause:
                             if iscancel:
                                 raise OperationCancelledError(language.s112())
+                    Time3 = time.time()
                     algorithm.update(f.read(1024 * 1024))
                     size -= 1048576
                     allsize1 += 1048576
@@ -475,7 +483,21 @@ class main(wx.Frame):
                     Time1 = time.time()
                     check.m_staticText1.SetLabelText(language.s66() + timeformat(int((Time1 - Time) // 1)))
                     check.m_staticText4.SetLabelText(language.s67() + intformat(size1 - size) + ' ' + language.s73())
-                    check.m_staticText5.SetLabelText(language.s68() + str('%.2f' % (progress * 100)) + '%')
+                    if (1048576 / (Time1 - Time3)) >= 1099511627776:  #1TB
+                        check.m_staticText5.SetLabelText(language.s68() + str('%.2f' % (progress * 100)) + '% (' + str(
+                            '%.2f' % (1048576 / (Time1 - Time3) / 1099511627776)) + ' TB/s)')
+                    elif (1048576 / (Time1 - Time3)) >= 1073741824:  #1GB
+                        check.m_staticText5.SetLabelText(language.s68() + str('%.2f' % (progress * 100)) + '% (' + str(
+                            '%.2f' % (1048576 / (Time1 - Time3) / 1073741824)) + ' GB/s)')
+                    elif (1048576 / (Time1 - Time3)) >= 1048576:  #1MB
+                        check.m_staticText5.SetLabelText(language.s68() + str('%.2f' % (progress * 100)) + '% (' + str(
+                            '%.2f' % (1048576 / (Time1 - Time3) / 1048576)) + ' MB/s)')
+                    elif (1048576 / (Time1 - Time3)) >= 1024:  #1KB
+                        check.m_staticText5.SetLabelText(language.s68() + str('%.2f' % (progress * 100)) + '% (' + str(
+                            '%.2f' % (1048576 / (Time1 - Time3) / 1024)) + ' KB/s)')
+                    else:
+                        check.m_staticText5.SetLabelText(language.s68() + str('%.2f' % (progress * 100)) + '% (' + str(
+                            '%.2f' % (1048576 / (Time1 - Time3))) + ' ' + language.s73() + '/s)')
                     check.m_gauge1.SetValue(int('%.0f' % (progress * 10000)))
                     check.m_staticText6.SetLabelText(language.s69() + str('%.2f' % (allprogress * 100)) + '%')
                     check.m_gauge2.SetValue(int('%.0f' % (allprogress * 10000)))
@@ -507,6 +529,7 @@ class main(wx.Frame):
                         while ispause:
                             if iscancel:
                                 raise OperationCancelledError(language.s112())
+                    Time3 = time.time()
                     block = f.read(1024 * 1024)
                     size -= 1048576
                     allsize1 += 1048576
@@ -515,7 +538,21 @@ class main(wx.Frame):
                     Time1 = time.time()
                     check.m_staticText1.SetLabelText(language.s66() + timeformat(int((Time1 - Time) // 1)))
                     check.m_staticText4.SetLabelText(language.s67() + intformat(size1 - size) + ' ' + language.s73())
-                    check.m_staticText5.SetLabelText(language.s68() + str('%.2f' % (progress * 100)) + '%')
+                    if (1048576 / (Time1 - Time3)) >= 1099511627776:  # 1TB
+                        check.m_staticText5.SetLabelText(language.s68() + str('%.2f' % (progress * 100)) + '% (' + str(
+                            '%.2f' % (1048576 / (Time1 - Time3) / 1099511627776)) + ' TB/s)')
+                    elif (1048576 / (Time1 - Time3)) >= 1073741824:  # 1GB
+                        check.m_staticText5.SetLabelText(language.s68() + str('%.2f' % (progress * 100)) + '% (' + str(
+                            '%.2f' % (1048576 / (Time1 - Time3) / 1073741824)) + ' GB/s)')
+                    elif (1048576 / (Time1 - Time3)) >= 1048576:  # 1MB
+                        check.m_staticText5.SetLabelText(language.s68() + str('%.2f' % (progress * 100)) + '% (' + str(
+                            '%.2f' % (1048576 / (Time1 - Time3) / 1048576)) + ' MB/s)')
+                    elif (1048576 / (Time1 - Time3)) >= 1024:  # 1KB
+                        check.m_staticText5.SetLabelText(language.s68() + str('%.2f' % (progress * 100)) + '% (' + str(
+                            '%.2f' % (1048576 / (Time1 - Time3) / 1024)) + ' KB/s)')
+                    else:
+                        check.m_staticText5.SetLabelText(language.s68() + str('%.2f' % (progress * 100)) + '% (' + str(
+                            '%.2f' % (1048576 / (Time1 - Time3))) + ' ' + language.s73() + '/s)')
                     check.m_gauge1.SetValue(int('%.0f' % (progress * 10000)))
                     check.m_staticText6.SetLabelText(language.s69() + str('%.2f' % (allprogress * 100)) + '%')
                     check.m_gauge2.SetValue(int('%.0f' % (allprogress * 10000)))
@@ -985,6 +1022,10 @@ class main(wx.Frame):
         self.m_listCtrl2.IsAscendingSortIndicator()
         self.m_listCtrl2.GetSortIndicator()
 
+    def getupdate(self, event):
+        updatedialog = MyDialog7(None)
+        updatedialog.Show()
+
 
 class MyDialog1(wx.Dialog):
 
@@ -1159,7 +1200,7 @@ class MyDialog1(wx.Dialog):
         gSizer3.Add(self.m_button2, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
 
         sbSizer3.Add(gSizer3, 0, wx.EXPAND, 5)
-
+        '''
         languagelist = glob.glob('language_*.py')
         for i in range(len(languagelist)):
             languagelist[i] = languagelist[i].split(".")[0]
@@ -1174,21 +1215,27 @@ class MyDialog1(wx.Dialog):
         reload(getlanguagelist)
         displanguagelist = getlanguagelist.get()
 
+        print(languagelist)
+        print(displanguagelist)
+        '''
+        languagelist = []
+        for i in languagedic.values():
+            if i[0] not in languagelist:
+                languagelist.append(i[0])
+        displanguagelist = []
+        for i in languagedic.values():
+            if i[1] not in displanguagelist:
+                displanguagelist.append(i[1])
         m_listBox2Choices = [language.s21()]
         m_listBox2Choices.extend(displanguagelist)
         self.m_listBox2 = wx.ListBox(sbSizer3.GetStaticBox(), wx.ID_ANY, wx.DefaultPosition, wx.Size(480, 290),
                                      m_listBox2Choices, wx.LB_NEEDED_SB | wx.LB_SINGLE)
         sbSizer3.Add(self.m_listBox2, 1, wx.ALL | wx.EXPAND, 5)
 
-        def listlocate(list, Element):
-            for i in range(0, len(list)):
-                if list[i] == Element:
-                    return (i)
-            return (-1)
         if setting[0] == 'Auto':
             self.m_listBox2.SetSelection(0)
         else:
-            self.m_listBox2.SetSelection(listlocate(languagelist, setting[0]) + 1)
+            self.m_listBox2.SetSelection(languagelist.index(setting[0]) + 1)
 
         bSizer6.Add(sbSizer3, 1, wx.EXPAND, 5)
 
@@ -1247,7 +1294,7 @@ class MyDialog1(wx.Dialog):
 
     def changelanguage(self, event):
         global languagelist
-        if not os.path.isfile('language_' + str(locale) + '.py') and self.m_listBox2.GetSelection() == 0:
+        if not os.path.isfile(languagedic[locale][0] + '.py') and self.m_listBox2.GetSelection() == 0:
             toastone = wx.MessageDialog(None, language.s46(), language.s81(),
                                         wx.OK | wx.OK_DEFAULT | wx.ICON_ERROR)
             toastone.SetOKLabel(language.s57())
@@ -1257,7 +1304,7 @@ class MyDialog1(wx.Dialog):
             with open(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'newlanguage.py'),
                       'w', encoding='utf-8') as f:
                 if self.m_listBox2.GetSelection() == 0:
-                    f.write('from language_' + str(locale) + ' import *')
+                    f.write('from ' + languagedic[locale][0] + ' import *')
                 else:
                     f.write('from ' + languagelist[self.m_listBox2.GetSelection() - 1] + ' import *')
             import newlanguage
@@ -1435,18 +1482,19 @@ class MyDialog3(wx.Dialog):
 
         bSizer6 = wx.BoxSizer(wx.VERTICAL)
 
-        self.m_bitmap1 = wx.StaticBitmap(self, wx.ID_ANY,
-                                         wx.Bitmap("Logo.bmp", wx.BITMAP_TYPE_ANY),
-                                         wx.DefaultPosition, wx.Size(int('%.0f' % (100 * self.GetDPI()[0] / 96)),
-                                                                     int('%.0f' % (100 * self.GetDPI()[0] / 96))),
-                                         0)
-        #self.m_bitmap1.SetScaleMode()
+        self.m_bitmap1 = wx.GenericStaticBitmap(self, wx.ID_ANY,
+                                                wx.Bitmap("Logo.png", wx.BITMAP_TYPE_ANY),
+                                                wx.DefaultPosition, wx.Size(int('%.0f' % (100 * self.GetDPI()[0] / 96)),
+                                                                            int('%.0f' % (
+                                                                                        100 * self.GetDPI()[0] / 96))),
+                                                0)
+        self.m_bitmap1.SetScaleMode(2)
         bSizer6.Add(self.m_bitmap1, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 5)
 
         self.m_staticText1 = wx.StaticText(self, wx.ID_ANY,
                                            language.s45() + '\n' + language.s47(sys.version.partition(' ')[0],
                                                                                 wx.version().partition(' ')[0]) +
-                                           '\n' + 'Copyright ©2024 ZHJ. All Rights Reserved.' + '\n',
+                                           '\n' + 'Copyright ©2025 ZHJ. All Rights Reserved.' + '\n',
                                            wx.DefaultPosition, wx.DefaultSize, wx.ALIGN_CENTER_HORIZONTAL)
         self.m_staticText1.Wrap(-1)
 
@@ -1778,6 +1826,231 @@ class MyDialog6(wx.Dialog):
         self.Destroy()
 
 
+class MyDialog7(wx.Dialog):
+
+    def __init__(self, parent):
+        wx.Dialog.__init__(self, parent, id=wx.ID_ANY, title=language.s117(), pos=wx.DefaultPosition,
+                           size=wx.Size(400, 300), style=wx.DEFAULT_DIALOG_STYLE)
+
+        self.SetSize(wx.Size(int('%.0f' % (400 * self.GetDPI()[0] / 96)),
+                             int('%.0f' % (
+                                     300 * self.GetDPI()[0] / 96))))
+        self.retry = 0
+        self.current_version = {'link': {}}
+        self.SetSizeHints(wx.DefaultSize, wx.DefaultSize)
+        frame.Enable(False)
+
+        bSizer13 = wx.BoxSizer(wx.VERTICAL)
+
+        fgSizer1 = wx.FlexGridSizer(0, 2, 0, 0)
+        fgSizer1.SetFlexibleDirection(wx.BOTH)
+        fgSizer1.SetNonFlexibleGrowMode(wx.FLEX_GROWMODE_SPECIFIED)
+
+        self.m_bitmap2 = wx.GenericStaticBitmap(self, wx.ID_ANY,
+                                                wx.Bitmap("Logo.png", wx.BITMAP_TYPE_ANY),
+                                                wx.DefaultPosition, wx.Size(int('%.0f' % (50 * self.GetDPI()[0] / 96)),
+                                                                            int('%.0f' % (
+                                                                                    50 * self.GetDPI()[0] / 96))), 0)
+        self.m_bitmap2.SetScaleMode(2)
+        fgSizer1.Add(self.m_bitmap2, 0, wx.ALL, 5)
+
+        self.m_staticText14 = wx.StaticText(self, wx.ID_ANY,
+                                            language.s1() + '\n' + language.s118() + '\n' + language.s119(None),
+                                            wx.DefaultPosition, wx.DefaultSize, 0)
+        self.m_staticText14.Wrap(-1)
+
+        fgSizer1.Add(self.m_staticText14, 1, wx.ALL, 5)
+
+        bSizer13.Add(fgSizer1, 0, wx.EXPAND, 5)
+
+        self.m_richText3 = wx.richtext.RichTextCtrl(self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize,
+                                                    wx.TE_READONLY | wx.VSCROLL | wx.HSCROLL | wx.NO_BORDER | wx.WANTS_CHARS)
+        self.m_htmlWin1 = wx.html.HtmlWindow(self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize,
+                                             wx.html.HW_SCROLLBAR_AUTO)
+        self.m_htmlWin1.SetPage(markdown.markdown(language.s120()))
+        bSizer13.Add(self.m_htmlWin1, 1, wx.ALL | wx.EXPAND, 5)
+
+        self.m_staticText15 = wx.StaticText(self, wx.ID_ANY, language.s121(), wx.DefaultPosition, wx.DefaultSize, 0)
+        self.m_staticText15.Wrap(-1)
+
+        bSizer13.Add(self.m_staticText15, 0, wx.ALL, 5)
+        self.m_staticText15.Show(False)
+
+        self.m_gauge3 = wx.Gauge(self, wx.ID_ANY, 100, wx.DefaultPosition, wx.DefaultSize, wx.GA_HORIZONTAL)
+        self.m_gauge3.SetValue(0)
+
+        bSizer13.Add(self.m_gauge3, 0, wx.ALL | wx.EXPAND, 5)
+        self.m_gauge3.Show(False)
+
+        m_sdbSizer5 = wx.StdDialogButtonSizer()
+        self.m_sdbSizer5OK = wx.Button(self, wx.ID_OK)
+        self.m_sdbSizer5OK.SetLabel(language.s122())
+        self.m_sdbSizer5OK.Enable(False)
+        m_sdbSizer5.AddButton(self.m_sdbSizer5OK)
+        self.m_sdbSizer5Cancel = wx.Button(self, wx.ID_CANCEL)
+        self.m_sdbSizer5Cancel.SetLabel(language.s54())
+        m_sdbSizer5.AddButton(self.m_sdbSizer5Cancel)
+        m_sdbSizer5.Realize()
+
+        bSizer13.Add( m_sdbSizer5, 0, wx.EXPAND|wx.ALL, 5 )
+
+        self.SetSizer(bSizer13)
+        self.Layout()
+
+        self.Centre(wx.BOTH)
+        self.update(self)
+
+        # Connect Events
+        self.Bind(wx.EVT_CLOSE, self.close)
+        self.m_sdbSizer5Cancel.Bind(wx.EVT_BUTTON, self.close)
+        self.m_sdbSizer5OK.Bind(wx.EVT_BUTTON, self.update)
+
+    def __del__(self):
+        pass
+
+    # Virtual event handlers, override them in your derived class
+    def close(self, event):
+        if self.m_sdbSizer5Cancel.IsEnabled():
+            frame.Enable(True)
+            self.Destroy()
+
+    def update(self, event, retry=0):
+        if self.m_sdbSizer5OK.GetLabel() == language.s122():
+            self.m_htmlWin1.SetPage(markdown.markdown(language.s120()))
+            self.m_staticText14.SetLabel(language.s1() + '\n' + language.s118() + '\n' + language.s119(None))
+            self.m_sdbSizer5OK.Enable(False)
+            if not retry:
+                thread2 = threading.Thread(target=self.download, args=(
+                'check', 'https://github.com/ZHJ00000/OTA_Service/releases/download/CurrentVersion/CurrentVersion.json',
+                os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'CurrentVersion.json')), daemon=True)
+            else:
+                thread2 = threading.Thread(target=self.download, args=(
+                    'check',
+                    'https://gitee.com/zhj00/OTA_Service/releases/download/FilesChecker/CurrentVersion.json',
+                    os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'CurrentVersion.json')), daemon=True)
+            thread2.start()
+        elif self.m_sdbSizer5OK.GetLabel() == language.s124():
+            self.m_staticText15.Show(True)
+            self.m_sdbSizer5OK.Enable(False)
+            self.m_sdbSizer5Cancel.Enable(False)
+            if str(version) in self.current_version['link'].keys():
+                thread2 = threading.Thread(target=self.download, args=(
+                    'download', self.current_version['link'][str(version)][self.retry + 1],
+                    os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3',
+                                 os.path.basename(self.current_version['link'][str(version)][self.retry + 1]))),
+                                           daemon=True)
+            else:
+                thread2 = threading.Thread(target=self.download, args=(
+                    'download', self.current_version['link']['other'][self.retry + 1],
+                    os.path.join(os.environ["TEMP"],
+                                 os.path.basename(self.current_version['link']['other'][self.retry + 1]))), daemon=True)
+            thread2.start()
+            self.m_gauge3.Show(True)
+            self.Layout()
+
+    def unzip_encrypted_zip(self, zip_file, password, output_path):
+        global frame
+        with pyzipper.AESZipFile(zip_file) as zf:
+            zf.extractall(output_path, pwd=password.encode())
+
+    def download(self, mode, url, output_path):
+        global updatedialog
+        with open(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'wgetlog.log'), 'w',
+                  encoding='utf-8') as f:
+            pass
+        process = subprocess.Popen(
+            ["wget.exe", '-o', os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'wgetlog.log'), '-t 3 -T 5',
+             '-O',
+             output_path, '--progress=bar', url], creationflags=subprocess.CREATE_NO_WINDOW)
+        if mode == 'download':
+            while True:
+                if process.poll() is not None:
+                    break
+                with open(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'wgetlog.log'), 'r',
+                          encoding='utf-8') as f:
+                    a = f.readlines()
+                try:
+                    if a[-2].rstrip().split()[1] == '..........':
+                        self.m_staticText15.SetLabel(
+                            language.s121() + a[-2].rstrip().split()[-3] + ' (' + a[-2].rstrip().split()[
+                                -2] + 'B/s, ' + language.s128() +
+                            a[-2].rstrip().split()[-1] + ')')
+                        self.m_gauge3.SetValue(int(a[-2].rstrip().split()[-3][:-1]))
+                    else:
+                        self.m_staticText15.SetLabel(language.s123())
+                except IndexError:
+                    self.m_staticText15.SetLabel(language.s123())
+                time.sleep(0.5)
+
+        while True:
+            if process.poll() is not None:
+                break
+        rc = process.poll()
+
+        if rc == 0:
+            if mode == 'check':
+                self.retry = 0
+                with open(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'CurrentVersion.json'), 'r',
+                          encoding='utf-8') as f:
+                    self.current_version = json.loads(f.read())
+                try:
+                    self.m_htmlWin1.SetPage(markdown.markdown(self.current_version['note'][language.LANGUAGE[1]]))
+                    self.m_staticText14.SetLabel(
+                        language.s1() + '\n' + language.s118() + '\n' + language.s119(self.current_version['version']))
+                    if tuple(self.current_version['version']) > version:
+                        self.m_sdbSizer5OK.SetLabel(language.s124())
+                        if str(version) in self.current_version['link'].keys():
+                            self.m_staticText15.SetLabel(language.s125() + self.current_version['link'][str(version)][0])
+                        else:
+                            self.m_staticText15.SetLabel(language.s126() + self.current_version['link']['other'][0])
+                        self.m_staticText15.Show(True)
+                        self.Layout()
+
+                    else:
+                        self.m_sdbSizer5OK.SetLabel(language.s122())
+                    self.m_sdbSizer5OK.Enable(True)
+                except RuntimeError:
+                    pass
+            elif mode == 'download':
+                self.Destroy()
+                if str(version) in self.current_version['link'].keys():
+                    if not os.path.isdir(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'Update')):
+                        os.mkdir(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'Update'))
+                    self.unzip_encrypted_zip(output_path, '7CR2H-2P7MD-69H72-7G1F9-0DCL3',
+                                             os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'Update'))
+                    os.startfile(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'Update', 'ZHJSetup.exe'))
+                else:
+                    os.popen(output_path)
+                frame.Destroy()
+
+        else:
+            try:
+                if str(version) in self.current_version['link'].keys():
+                    tf = (mode == 'check' and self.retry == 1) or (
+                            mode == 'download' and len(
+                        self.current_version['link'][str(version)]) - 2 - self.retry == 0)
+                else:
+                    tf = (mode == 'check' and self.retry == 1) or (
+                            mode == 'download' and len(
+                        self.current_version['link']['other']) - 2 - self.retry == 0)
+                if tf:
+                    self.m_htmlWin1.SetPage(markdown.markdown(language.s127()))
+                    self.m_staticText14.SetLabel(
+                        language.s1() + '\n' + language.s118() + '\n' + language.s119(None))
+                    self.m_sdbSizer5OK.SetLabel(language.s122())
+                    self.m_staticText15.Show(False)
+                    self.m_gauge3.Show(False)
+                    self.Layout()
+                    self.m_sdbSizer5OK.Enable(True)
+                    self.m_sdbSizer5Cancel.Enable(True)
+                else:
+                    self.retry += 1
+                    self.update(self, self.retry)
+            except RuntimeError:
+                pass
+
+
+
 if __name__ == '__main__':
     app = wx.App()
     sys.path.append(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3'))
@@ -1786,6 +2059,22 @@ if __name__ == '__main__':
         os.mkdir(os.path.join(os.environ["APPDATA"], 'ZHJ'))
     if not os.path.isdir(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3')):
         os.mkdir(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3'))
+    languagelist = glob.glob('language_*.py')
+    languagedic = {}
+    for i in range(len(languagelist)):
+        languagelist[i] = languagelist[i].split(".")[0]
+    code = 'def get():\n    list = []\n'
+    for i in languagelist:
+        code = code + '    import ' + i + '\n    list.append(' + i + '.LANGUAGE)\n'
+        code = code + '    list[-1].append("' + i + '")\n'
+    code = code + '    return list'
+    with open(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'getlanguagelist.py'), 'w',
+              encoding='utf-8') as f:
+        f.write(code)
+    import getlanguagelist
+    for i in getlanguagelist.get():
+        for j in i[0]:
+            languagedic[j] = [i[2], i[1]]
     try:
         with open(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'Setting.ini'), 'r',
                   encoding='utf-8') as settingfile:
@@ -1806,7 +2095,7 @@ if __name__ == '__main__':
         if setting[0] == 'Auto':
             with open(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'language.py'),
                       'w', encoding='utf-8') as languagefile:
-                languagefile.write('from language_' + str(locale) + ' import *')
+                languagefile.write('from ' + languagedic[locale][0] + ' import *')
         else:
             with open(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'language.py'),
                       'w', encoding='utf-8') as languagefile:
@@ -1816,14 +2105,14 @@ if __name__ == '__main__':
         try:
             with open(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'Setting.ini'), 'w',
                       encoding='utf-8') as settingfile:
-                settingfile.write('language_English_United_States\nUTF-8\nANSI\n')
-                setting = ['language_English_United_States', 'UTF-8', 'ANSI']
+                settingfile.write('language_English\nUTF-8\nANSI\n')
+                setting = ['language_English', 'UTF-8', 'ANSI']
             with open(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'language.py'),
                       'w', encoding='utf-8') as languagefile:
                 languagefile.write('from ' + setting[0] + ' import *')
             import language
         except Exception as err:
-            toastone = wx.MessageDialog(None, 'Unable to start program due to missing language pack.', 'FilesChecker Beta',
+            toastone = wx.MessageDialog(None, 'Unable to start program due to missing language pack.', 'FilesChecker',
                                         wx.OK | wx.OK_DEFAULT | wx.ICON_ERROR)
             toastone.SetOKLabel('&OK')
             if toastone.ShowModal() == wx.ID_YES:  # 如果点击了提示框的确定按钮

@@ -1,10 +1,10 @@
 # coding=utf-8
-# Copyright ©2024 ZHJ. All Rights Reserved.
-# Beta 5
-FOR = ['FilesChecker Beta', (3, 0), 'Windows']
-LANGUAGE = ['Chinese__Traditional__Hong_Kong_SAR', '繁體中文 (中國香港特別行政區)']
+# Copyright ©2025 ZHJ. All Rights Reserved.
+
+FOR = ['FilesChecker', (3, 0), 'Windows']
+LANGUAGE = [['Chinese (Traditional)_Taiwan', 'Chinese (Traditional)_Hong Kong SAR', 'Chinese (Traditional)_Macao SAR'], '繁體中文 (中國香港特別行政區、中國澳門特別行政區、中國臺灣)']
 def s1():
-    return '文件校驗器 Beta'
+    return '文件校驗器'
 def s2():
     return '開始校驗(&K)'
 def s3():
@@ -236,3 +236,32 @@ def s114():
     return '繼續(&C)'
 def s115():
     return '你確定要取消嗎？'
+def s116():
+    return '軟體更新(&U)…'
+def s117():
+    return '軟體更新'
+def s118():
+    return '當前版本：3.0'
+def s119(version):
+    if version:
+        return '最新版本：' + '.'.join(map(str, version))
+    else:
+        return '最新版本：'
+def s120():
+    return '正在檢查更新…'
+def s121():
+    return '下载进度：'
+def s122():
+    return '檢查(&C)'
+def s123():
+    return '連接中…'
+def s124():
+    return '更新(&U)'
+def s125():
+    return '補丁包大小：'
+def s126():
+    return '完整包大小：'
+def s127():
+    return '無法獲取更新，請稍後再試。'
+def s128():
+    return '剩餘'
