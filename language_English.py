@@ -1,7 +1,7 @@
 # coding=utf-8
 # Copyright ©2025 ZHJ. All Rights Reserved.
 
-FOR = ['FilesChecker', 3.0, 'Windows']
+FOR = ['FilesChecker', (3, 1), 'Windows']
 LANGUAGE = [['English_United States'], 'English (Generic)']
 def s1():
     return 'FilesChecker'
@@ -95,7 +95,7 @@ def s43():
 def s44():
     return 'About'
 def s45():
-    return 'FilesChecker v3.0 Beta5'
+    return 'FilesChecker v3.1'
 def s46():
     return 'The language pack is not installed.'
 def s47(pyver, wxver):
@@ -219,11 +219,11 @@ def s105():
 def s106():
     return 'Task List'
 def s107():
-    return 'Use encoding when saving task list:'
+    return 'Use encoding when saving task list: '
 def s108():
     return 'Check Result'
 def s109():
-    return 'Use encoding when exporting check result:'
+    return 'Use encoding when exporting check result: '
 def s110():
     return '&Restore Default Settings'
 def s111():
@@ -241,7 +241,7 @@ def s116():
 def s117():
     return 'Software Update'
 def s118():
-    return 'Current Version：3.0'
+    return 'Current Version：3.1'
 def s119(version):
     if version:
         return 'Lastest Version：' + '.'.join(map(str, version))
@@ -265,3 +265,45 @@ def s127():
     return 'Unable to obtain updates, please try again later.'
 def s128():
     return 'remaining'
+def s129():
+    return 'Work &Directory…'
+def s130():
+    return ['Mode 1', 'Mode 2']
+def s131():
+    return '&Add Item…'
+def s132():
+    return 'Add a item.'
+def s133():
+    return '&Add Item…'
+def s134():
+    return 'Expected Checksum'
+def s135():
+    return 'Results'
+def s136():
+    return 'Set Work Directory'
+def s137():
+    return 'Switching modes will clear the list. Do you want to continue?'
+def s138():
+    return 'Expected Checksum: '
+def s139():
+    return 'Software updates are available.'
+def s140():
+    return 'Add Item'
+def s141():
+    return 'File: '
+def s142():
+    return 'Expected Checksum: '
+def s143():
+    return 'Invalid File'
+def s144():
+    return 'Select the file again and try again.'
+def s145():
+    return 'Paste or load task list from file.'
+def s146():
+    return 'Load &File…'
+def s147():
+    return 'All Supported Files (*.md5; *.sha; *.sha1; *.sha256; *.txt)|*.md5; *.sha; *.sha1; *.sha256; *.txt|Text Document (*.txt)|*.txt|All files (*.*)|*.*'
+def s148():
+    return 'When Starting the Software'
+def s149():
+    return 'Default check mode: '

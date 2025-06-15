@@ -1,7 +1,7 @@
 # coding=utf-8
 # Copyright ©2025 ZHJ. All Rights Reserved.
 
-FOR = ['FilesChecker', (3, 0), 'Windows']
+FOR = ['FilesChecker', (3, 1), 'Windows']
 LANGUAGE = [['Chinese (Simplified)_China'], '简体中文 (中国大陆)']
 def s1():
     return '文件校验器'
@@ -95,7 +95,7 @@ def s43():
 def s44():
     return '关于'
 def s45():
-    return '文件校验器 v3.0'
+    return '文件校验器 v3.1'
 def s46():
     return '未安装该语言包。'
 def s47(pyver, wxver):
@@ -241,7 +241,7 @@ def s116():
 def s117():
     return '软件更新'
 def s118():
-    return '当前版本：3.0'
+    return '当前版本：3.1'
 def s119(version):
     if version:
         return '最新版本：' + '.'.join(map(str, version))
@@ -265,3 +265,45 @@ def s127():
     return '无法获取更新，请稍后再试。'
 def s128():
     return '剩余'
+def s129():
+    return '工作目录(&D)…'
+def s130():
+    return ['模式 1', '模式 2']
+def s131():
+    return '添加项目(&A)…'
+def s132():
+    return '添加一个项目。'
+def s133():
+    return '添加项目(&A)…'
+def s134():
+    return '预期校验和'
+def s135():
+    return '校验结果'
+def s136():
+    return '设置工作目录'
+def s137():
+    return '切换模式将清空列表，是否继续？'
+def s138():
+    return '预期校验和：'
+def s139():
+    return '有软件更新可用。'
+def s140():
+    return '添加项目'
+def s141():
+    return '文件：'
+def s142():
+    return '预期校验和：'
+def s143():
+    return '文件无效'
+def s144():
+    return '重新选择文件并重试。'
+def s145():
+    return '粘贴或从文件加载任务列表。'
+def s146():
+    return '加载文件(&F)…'
+def s147():
+    return '所有支持的文件 (*.md5; *.sha; *.sha1; *.sha256; *.txt)|*.md5; *.sha; *.sha1; *.sha256; *.txt|文本文档 (*.txt)|*.txt|所有文件 (*.*)|*.*'
+def s148():
+    return '启动软件时'
+def s149():
+    return '默认校验模式：'

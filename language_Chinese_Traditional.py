@@ -1,7 +1,7 @@
 # coding=utf-8
 # Copyright ©2025 ZHJ. All Rights Reserved.
 
-FOR = ['FilesChecker', (3, 0), 'Windows']
+FOR = ['FilesChecker', (3, 1), 'Windows']
 LANGUAGE = [['Chinese (Traditional)_Taiwan', 'Chinese (Traditional)_Hong Kong SAR', 'Chinese (Traditional)_Macao SAR'], '繁體中文 (中國香港特別行政區、中國澳門特別行政區、中國臺灣)']
 def s1():
     return '文件校驗器'
@@ -50,7 +50,7 @@ def s22():
 def s23():
     return '所有檔案 (*.*)|*.*'
 def s24():
-    return '設置'
+    return '設定'
 def s25():
     return '完成後操作'
 def s26():
@@ -95,7 +95,7 @@ def s43():
 def s44():
     return '關於'
 def s45():
-    return '文件校驗器 v3.0 Beta5'
+    return '文件校驗器 v3.1'
 def s46():
     return '未安裝該語言包。'
 def s47(pyver, wxver):
@@ -241,7 +241,7 @@ def s116():
 def s117():
     return '軟體更新'
 def s118():
-    return '當前版本：3.0'
+    return '當前版本：3.1'
 def s119(version):
     if version:
         return '最新版本：' + '.'.join(map(str, version))
@@ -265,3 +265,45 @@ def s127():
     return '無法獲取更新，請稍後再試。'
 def s128():
     return '剩餘'
+def s129():
+    return '工作目錄(&D)…'
+def s130():
+    return ['模式 1', '模式 2']
+def s131():
+    return '添加項目(&A)…'
+def s132():
+    return '添加一個項目。'
+def s133():
+    return '添加項目(&A)…'
+def s134():
+    return '預期校驗和'
+def s135():
+    return '校驗結果'
+def s136():
+    return '設定工作目錄'
+def s137():
+    return '切換模式將清空清單，是否繼續？'
+def s138():
+    return '預期校驗和：'
+def s139():
+    return '有軟體更新可用。'
+def s140():
+    return '添加項目'
+def s141():
+    return '文件：'
+def s142():
+    return '預期校驗和：'
+def s143():
+    return '檔案無效'
+def s144():
+    return '重新選擇檔案並重試。'
+def s145():
+    return '粘貼或從檔案加載任務清單。'
+def s146():
+    return '加載檔案(&F)…'
+def s147():
+    return '所有支持的檔案 (*.md5; *.sha; *.sha1; *.sha256; *.txt)|*.md5; *.sha; *.sha1; *.sha256; *.txt|文字文件 (*.txt)|*.txt|所有檔案 (*.*)|*.*'
+def s148():
+    return '啟動軟件時'
+def s149():
+    return '默認校驗模式：'

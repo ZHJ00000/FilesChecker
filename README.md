@@ -17,7 +17,8 @@
 
 [简体中文](README_Chinese_Simplified.md)  [繁體中文](README_Chinese_Traditional.md)
 
-![home_en](https://s3.bmp.ovh/imgs/2024/11/10/d503c93c85092e30.png)
+![](https://s3.bmp.ovh/imgs/2025/06/14/d4897862d9529da9.png)
+![](https://s3.bmp.ovh/imgs/2025/06/15/a36b7c5341db732d.png)
 
 FilesChecker is a simple and easy-to-use batch file validation tool that supports algorithms such as MD5, SHA-1, SHA-256, SHA3 series, CRC-32, etc.
 
