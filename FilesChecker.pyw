@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright ©2025 ZHJ. All Rights Reserved.
+# Copyright ©2025 ZHJ.
 
 import wx, wx.xrc, wx.adv, wx.richtext, wx.html  # pip install wxPython
 import sys
@@ -18,7 +18,6 @@ import ctypes
 import markdown  # pip install Markdown
 import subprocess
 import json
-import pyzipper  # pip install pyzipper
 import shutil
 sysver = []
 for i in platform.version().split('.'):
@@ -37,7 +36,7 @@ command = ''
 export = ''
 isexport = False
 #os.chdir(os.path.dirname(sys.argv[0]))
-version = (3, 1)
+version = (3, 1, 1)
 
 def intask(file, encoding):
     try:
@@ -218,6 +217,15 @@ class FileDrop(wx.FileDropTarget):
                 frame.m_listCtrl2.SetItem(index, 3, '')
                 information.append('/')
         frame.sort(None)
+        return False
+
+class FileDrop2(wx.FileDropTarget):
+    def __init__(self):
+        wx.FileDropTarget.__init__(self)
+
+    def OnDropFiles(self, x, y, filePath):
+        if os.path.isfile(filePath[0]):
+            frame.additem.m_filePicker2.SetPath(filePath[0])
         return False
 
 
@@ -628,7 +636,9 @@ class main(wx.Frame):
             self.m_menuItem3.Enable(False)
             self.m_menuItem10.Enable(False)
             self.m_menuItem172.Enable(False)
+            self.m_menuItem171.Enable(False)
             self.m_choice1.Enable(False)
+            self.m_choice4.Enable(False)
             self.m_button1.Enable(False)
             self.m_button6.Enable(False)
             self.m_button3.Enable(False)
@@ -792,11 +802,11 @@ class main(wx.Frame):
                 self.m_listCtrl2.SetItem(i, 3, str(listitems[i][3]))
                 if self.m_choice4.GetSelection() == 1:
                     if str(listitems[i][3]) == '1':
-                        self.m_listCtrl2.SetItemBackgroundColour(i, wx.Colour(198, 239, 206))
+                        self.m_listCtrl2.SetItemBackgroundColour(i, wx.Colour(198, 239, 206))    #Green
                     elif str(listitems[i][3]) == language.s81():
-                        self.m_listCtrl2.SetItemBackgroundColour(i, wx.Colour(255, 235, 156))
+                        self.m_listCtrl2.SetItemBackgroundColour(i, wx.Colour(255, 235, 156))    #Yellow
                     elif str(listitems[i][3]) == '0':
-                        self.m_listCtrl2.SetItemBackgroundColour(i, wx.Colour(255, 199, 206))
+                        self.m_listCtrl2.SetItemBackgroundColour(i, wx.Colour(255, 199, 206))    #Red
             self.m_menuItem1.Enable(True)
             self.m_menuItem2.Enable(True)
             self.m_menuItem8.Enable(True)
@@ -805,7 +815,9 @@ class main(wx.Frame):
             self.m_menuItem3.Enable(True)
             self.m_menuItem10.Enable(True)
             self.m_menuItem172.Enable(True)
+            self.m_menuItem171.Enable(True)
             self.m_choice1.Enable(True)
+            self.m_choice4.Enable(True)
             self.m_button1.Enable(True)
             self.m_button6.Enable(True)
             self.m_button3.Enable(True)
@@ -860,8 +872,8 @@ class main(wx.Frame):
                     information.append('/')
                 frame.sort(None)
         elif self.m_choice4.GetSelection() == 1:
-            additem = MyDialog8(None)
-            additem.Show(True)
+            self.additem = MyDialog8(None)
+            self.additem.Show(True)
 
     def addhash(self, event):
         addhash = MyDialog2(None, language.s42())
@@ -1161,14 +1173,15 @@ class main(wx.Frame):
                     if listitems[i][3] == -1:
                         self.m_listCtrl2.SetItem(i, 3, '')
                         self.m_listCtrl2.SetItemBackgroundColour(i, wx.Colour(-1, -1, -1))
+                    elif listitems[i][3] == -2:
+                        self.m_listCtrl2.SetItem(i, 3, language.s81())
+                        self.m_listCtrl2.SetItemBackgroundColour(i, wx.Colour(255, 235, 156))    #Yellow
                     else:
                         self.m_listCtrl2.SetItem(i, 3, str(listitems[i][3]))
                         if str(listitems[i][3]) == '1':
-                            self.m_listCtrl2.SetItemBackgroundColour(i, wx.Colour(198, 239, 206))
-                        elif str(listitems[i][3]) == language.s81():
-                            self.m_listCtrl2.SetItemBackgroundColour(i, wx.Colour(255, 235, 156))
+                            self.m_listCtrl2.SetItemBackgroundColour(i, wx.Colour(198, 239, 206))    #Green
                         elif str(listitems[i][3]) == '0':
-                            self.m_listCtrl2.SetItemBackgroundColour(i, wx.Colour(255, 199, 206))
+                            self.m_listCtrl2.SetItemBackgroundColour(i, wx.Colour(255, 199, 206))    #Red
                     self.m_listCtrl2.SetItem(i, 1, listitems[i][1])
                     self.m_listCtrl2.SetItem(i, 2, listitems[i][2])
 
@@ -1727,7 +1740,7 @@ class MyDialog3(wx.Dialog):
         self.m_staticText1 = wx.StaticText(self, wx.ID_ANY,
                                            language.s45() + '\n' + language.s47(sys.version.partition(' ')[0],
                                                                                 wx.version().partition(' ')[0]) +
-                                           '\n' + 'Copyright ©2025 ZHJ. All Rights Reserved.' + '\n',
+                                           '\n' + 'Copyright ©2025 ZHJ.' + '\n',
                                            wx.DefaultPosition, wx.DefaultSize, wx.ALIGN_CENTER_HORIZONTAL)
         self.m_staticText1.Wrap(-1)
 
@@ -2206,11 +2219,6 @@ class MyDialog7(wx.Dialog):
             self.m_gauge3.Show(True)
             self.Layout()
 
-    def unzip_encrypted_zip(self, zip_file, password, output_path):
-        global frame
-        with pyzipper.AESZipFile(zip_file) as zf:
-            zf.extractall(output_path, pwd=password.encode())
-
     def download(self, mode, url, output_path, usecache=None):
         global updatedialog
         if os.path.isfile(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3',
@@ -2291,11 +2299,7 @@ class MyDialog7(wx.Dialog):
             elif mode == 'download':
                 self.Destroy()
                 if str(version) in self.current_version['link'].keys():
-                    if not os.path.isdir(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'Update')):
-                        os.mkdir(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'Update'))
-                    self.unzip_encrypted_zip(output_path, '7CR2H-2P7MD-69H72-7G1F9-0DCL3',
-                                             os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'Update'))
-                    os.startfile(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'Update', 'ZHJSetup.exe'))
+                    os.popen(output_path + ' /SILENT /PASSWORD=20W1B-M059N-B18FV-J433I-K7DF1')
                 else:
                     os.popen(output_path)
                 frame.Destroy()
@@ -2356,6 +2360,9 @@ class MyDialog8 ( wx.Dialog ):
                                                wx.DefaultPosition, wx.Size(-1, -1),
                                                wx.FLP_DEFAULT_STYLE | wx.FLP_FILE_MUST_EXIST | wx.FLP_OPEN | wx.FLP_SMALL)
         fgSizer2.Add( self.m_filePicker2, 0, wx.ALL|wx.EXPAND|wx.ALIGN_CENTER_VERTICAL, 5 )
+
+        fileDrop = FileDrop2()
+        self.m_filePicker2.SetDropTarget(fileDrop)
 
         self.m_staticText17 = wx.StaticText( self, wx.ID_ANY, language.s142(), wx.DefaultPosition, wx.DefaultSize, 0 )
         self.m_staticText17.Wrap( -1 )

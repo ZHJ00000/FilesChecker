@@ -1,7 +1,7 @@
 # coding=utf-8
-# Copyright ©2025 ZHJ. All Rights Reserved.
+# Copyright ©2025 ZHJ.
 
-FOR = ['FilesChecker', (3, 1), 'Windows']
+FOR = ['FilesChecker', (3, 1, 1), 'Windows']
 LANGUAGE = [['Chinese (Traditional)_Taiwan', 'Chinese (Traditional)_Hong Kong SAR', 'Chinese (Traditional)_Macao SAR'], '繁體中文 (中國香港特別行政區、中國澳門特別行政區、中國臺灣)']
 def s1():
     return '文件校驗器'
@@ -95,7 +95,7 @@ def s43():
 def s44():
     return '關於'
 def s45():
-    return '文件校驗器 v3.1'
+    return '文件校驗器 v' + '.'.join(map(str, FOR[1]))
 def s46():
     return '未安裝該語言包。'
 def s47(pyver, wxver):
@@ -241,7 +241,7 @@ def s116():
 def s117():
     return '軟體更新'
 def s118():
-    return '當前版本：3.1'
+    return '當前版本：' + '.'.join(map(str, FOR[1]))
 def s119(version):
     if version:
         return '最新版本：' + '.'.join(map(str, version))

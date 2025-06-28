@@ -1,7 +1,7 @@
 # coding=utf-8
-# Copyright ©2025 ZHJ. All Rights Reserved.
+# Copyright ©2025 ZHJ.
 
-FOR = ['FilesChecker', (3, 1), 'Windows']
+FOR = ['FilesChecker', (3, 1, 1), 'Windows']
 LANGUAGE = [['English_United States'], 'English (Generic)']
 def s1():
     return 'FilesChecker'
@@ -95,7 +95,7 @@ def s43():
 def s44():
     return 'About'
 def s45():
-    return 'FilesChecker v3.1'
+    return 'FilesChecker v' + '.'.join(map(str, FOR[1]))
 def s46():
     return 'The language pack is not installed.'
 def s47(pyver, wxver):
@@ -241,12 +241,12 @@ def s116():
 def s117():
     return 'Software Update'
 def s118():
-    return 'Current Version：3.1'
+    return 'Current Version: ' + '.'.join(map(str, FOR[1]))
 def s119(version):
     if version:
-        return 'Lastest Version：' + '.'.join(map(str, version))
+        return 'Lastest Version: ' + '.'.join(map(str, version))
     else:
-        return 'Lastest Version：'
+        return 'Lastest Version: '
 def s120():
     return 'Checking for updates…'
 def s121():
