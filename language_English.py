@@ -1,7 +1,7 @@
 # coding=utf-8
 # Copyright ©2025 ZHJ.
 
-FOR = ['FilesChecker', (3, 1, 1), 'Windows']
+FOR = ['FilesChecker', (3, 1, 2), 'Windows']
 LANGUAGE = [['English_United States'], 'English (Generic)']
 def s1():
     return 'FilesChecker'
@@ -307,3 +307,5 @@ def s148():
     return 'When Starting the Software'
 def s149():
     return 'Default check mode: '
+def s150():
+    return 'Another instance is running. '

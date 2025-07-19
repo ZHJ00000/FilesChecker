@@ -36,11 +36,28 @@ command = ''
 export = ''
 isexport = False
 #os.chdir(os.path.dirname(sys.argv[0]))
-version = (3, 1, 1)
+version = (3, 1, 2)
+with open(os.path.join(os.path.dirname(sys.argv[0]), "Encodings.txt"), 'r', encoding='utf-8') as f:
+    encodinglist = f.readlines()
+encodingslist = [[], []]
+for i in range(len(encodinglist)):
+    encodinglist[i] = encodinglist[i].rstrip().split('==>')
+    encodingslist[0].append(encodinglist[i][0])
+    encodingslist[1].append(encodinglist[i][1])
+del encodinglist
+def find_encoding_key(coding, encodingslist=encodingslist):
+    coding = coding.upper().replace('_', '-')
+    if coding in encodingslist[1]:
+        return coding
+    else:
+        if coding in encodingslist[0]:
+            return encodingslist[1][encodingslist[0].index(coding)]
+        else:
+            return None
 
 def intask(file, encoding):
     try:
-        with open(file, 'r', encoding=encoding) as file:
+        with open(file, 'r', encoding=encoding, errors='replace') as file:
             l = file.readlines()
     except Exception as err:
         tf = False
@@ -452,8 +469,12 @@ class main(wx.Frame):
             if toastone.ShowModal() == wx.ID_YES:  # 如果点击了提示框的确定按钮
                 toastone.Destroy()
                 iscancel = True
+                lockfile.close()
+                os.remove(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'LOCK'))
                 sys.exit(0)
         else:
+            lockfile.close()
+            os.remove(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'LOCK'))
             sys.exit(0)
 
     def export(self, path):
@@ -694,6 +715,7 @@ class main(wx.Frame):
             #elif self.m_choice4.GetSelection() == 1:
                 columns = (1, 3)
             for i in range(0, frame.m_listCtrl2.GetItemCount()):
+                size = 0
                 if self.m_choice4.GetSelection() == 0 and listitems[i][columns[0]] == '':
                     information.append('')
                 else:
@@ -934,7 +956,7 @@ class main(wx.Frame):
                         try:
                             with open(file, 'r', encoding=coding[9:]) as f:
                                 f.read()
-                        except UnicodeDecodeError or LookupError:
+                        except (UnicodeDecodeError, LookupError):
                             encodingpick = MyDialog5(None, coding[9:])
                             encodingpick.Show()
                         else:
@@ -943,7 +965,7 @@ class main(wx.Frame):
                         try:
                             with open(file, 'r', encoding=coding[8:]) as f:
                                 f.read()
-                        except UnicodeDecodeError or LookupError:
+                        except (UnicodeDecodeError, LookupError):
                             encodingpick = MyDialog5(None, coding[8:])
                             encodingpick.Show()
                         else:
@@ -1371,29 +1393,26 @@ class MyDialog1(wx.Dialog):
 
         gSizer5.Add(self.m_staticText12, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
 
-        m_choice2Choices = ['ANSI', 'ASCII', 'BIG5', 'BIG5HKSCS', 'CHARMAP', 'CP037', 'CP1006', 'CP1026', 'CP1125',
-                             'CP1140', 'CP1250', 'CP1251', 'CP1252', 'CP1253', 'CP1254', 'CP1255', 'CP1256', 'CP1257',
-                             'CP1258',
-                             'CP273', 'CP424', 'CP437', 'CP500', 'CP720', 'CP737', 'CP775', 'CP850', 'CP852', 'CP855',
-                             'CP856', 'CP857', 'CP858', 'CP860', 'CP861', 'CP862', 'CP863', 'CP864', 'CP865', 'CP866',
-                             'CP869', 'CP874', 'CP875', 'CP932', 'CP949', 'CP950', 'EUC_JISX0213', 'EUC_JIS_2004',
-                             'EUC_JP', 'EUC_KR', 'GB18030', 'GB2312', 'GBK', 'HP_ROMAN8', 'HZ', 'IDNA', 'ISO2022_JP',
-                             'ISO2022_JP_1', 'ISO2022_JP_2', 'ISO2022_JP_2004', 'ISO2022_JP_3', 'ISO2022_JP_EXT',
-                             'ISO2022_KR', 'ISO8859_1', 'ISO8859_10', 'ISO8859_11', 'ISO8859_13', 'ISO8859_14',
-                             'ISO8859_15', 'ISO8859_16', 'ISO8859_2', 'ISO8859_3', 'ISO8859_4', 'ISO8859_5',
-                             'ISO8859_6', 'ISO8859_7', 'ISO8859_8', 'ISO8859_9', 'JOHAB', 'KOI8_R', 'KOI8_T', 'KOI8_U',
-                             'KZ1048', 'LATIN_1', 'MAC_ARABIC', 'MAC_CROATIAN', 'MAC_CYRILLIC', 'MAC_FARSI',
-                             'MAC_GREEK', 'MAC_ICELAND', 'MAC_LATIN2', 'MAC_ROMAN', 'MAC_ROMANIAN', 'MAC_TURKISH',
-                             'MBCS', 'OEM', 'PALMOS', 'PTCP154', 'PUNYCODE', 'RAW_UNICODE_ESCAPE',
-                             'SHIFT_JIS', 'SHIFT_JISX0213', 'SHIFT_JIS_2004', 'TIS_620', 'UNICODE_ESCAPE', 'UTF-16',
-                             'UTF-16-BE', 'UTF-16-LE', 'UTF-32', 'UTF-32-BE', 'UTF-32-LE', 'UTF-7', 'UTF-8',
-                             'UTF-8-SIG']
+        m_choice2Choices = ['ANSI', 'ASCII', 'BIG5', 'BIG5HKSCS', 'CP037', 'CP273', 'CP424', 'CP437', 'CP500', 'CP720',
+                             'CP737', 'CP775', 'CP850', 'CP852', 'CP855', 'CP856', 'CP857', 'CP858', 'CP860', 'CP861',
+                             'CP862', 'CP863', 'CP864', 'CP865', 'CP866', 'CP869', 'CP874', 'CP875', 'CP932', 'CP949',
+                             'CP950', 'CP1006', 'CP1026', 'CP1125', 'CP1140', 'CP1250', 'CP1251', 'CP1252', 'CP1253',
+                             'CP1254', 'CP1255', 'CP1256', 'CP1257', 'CP1258', 'EUC_JP', 'EUC_JIS_2004', 'EUC_JISX0213',
+                             'EUC_KR', 'GB2312', 'GBK', 'GB18030', 'HZ', 'ISO2022_JP', 'ISO2022_JP_1', 'ISO2022_JP_2',
+                             'ISO2022_JP_2004', 'ISO2022_JP_3', 'ISO2022_JP_EXT', 'ISO2022_KR', 'LATIN_1', 'ISO8859_2',
+                             'ISO8859_3', 'ISO8859_4', 'ISO8859_5', 'ISO8859_6', 'ISO8859_7', 'ISO8859_8', 'ISO8859_9',
+                             'ISO8859_10', 'ISO8859_11', 'ISO8859_13', 'ISO8859_14', 'ISO8859_15', 'ISO8859_16',
+                             'JOHAB', 'KOI8_R', 'KOI8_T', 'KOI8_U', 'KZ1048', 'MAC_CYRILLIC', 'MAC_GREEK',
+                             'MAC_ICELAND', 'MAC_LATIN2', 'MAC_ROMAN', 'MAC_TURKISH', 'OEM', 'PTCP154', 'SHIFT_JIS',
+                             'SHIFT_JIS_2004', 'SHIFT_JISX0213', 'UTF_32', 'UTF_32_BE', 'UTF_32_LE', 'UTF_16',
+                             'UTF_16_BE', 'UTF_16_LE', 'UTF_7', 'UTF_8', 'UTF_8_SIG']
         self.m_choice2 = wx.Choice(sbSizer4.GetStaticBox(), wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize,
                                    m_choice2Choices, 0)
-        if setting['SaveTaskEncoding'] not in m_choice2Choices:
-            self.m_choice2.SetSelection(m_choice2Choices.index('UTF-8'))
+        if find_encoding_key(setting['SaveTaskEncoding']) not in m_choice2Choices:
+            self.m_choice2.SetSelection(m_choice2Choices.index('UTF_8'))
+            setting['SaveTaskEncoding'] = 'UTF_8'
         else:
-            self.m_choice2.SetSelection(m_choice2Choices.index(setting['SaveTaskEncoding']))
+            self.m_choice2.SetSelection(m_choice2Choices.index(find_encoding_key(setting['SaveTaskEncoding'])))
         gSizer5.Add(self.m_choice2, 0, wx.ALL | wx.ALIGN_RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
 
         sbSizer4.Add(gSizer5, 1, wx.EXPAND, 5)
@@ -1413,10 +1432,11 @@ class MyDialog1(wx.Dialog):
         m_choice3Choices = m_choice2Choices
         self.m_choice3 = wx.Choice(sbSizer5.GetStaticBox(), wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize,
                                    m_choice3Choices, 0)
-        if setting['ExportResultEncoding'] not in m_choice3Choices:
+        if find_encoding_key(setting['ExportResultEncoding']) not in m_choice3Choices:
             self.m_choice3.SetSelection(m_choice3Choices.index('ANSI'))
+            setting['ExportResultEncoding'] = 'ANSI'
         else:
-            self.m_choice3.SetSelection(m_choice3Choices.index(setting['ExportResultEncoding']))
+            self.m_choice3.SetSelection(m_choice3Choices.index(find_encoding_key(setting['ExportResultEncoding'])))
         with open(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'Setting.json'), 'w',
                   encoding='utf-8') as settingfile:
             settingfile.write(json.dumps(setting))
@@ -1536,7 +1556,7 @@ class MyDialog1(wx.Dialog):
             self.Destroy()
 
     def recover(self, event):
-        self.m_choice2.SetSelection(111)
+        self.m_choice2.SetSelection(97)
         self.m_choice3.SetSelection(0)
 
     def changelanguage(self, event):
@@ -1905,31 +1925,28 @@ class MyDialog5(wx.Dialog):
 
         bSizer101.Add(self.m_staticText13, 0, wx.ALL, 5)
 
-        m_listBox1Choices = ['ANSI', 'ASCII', 'BIG5', 'BIG5HKSCS', 'CHARMAP', 'CP037', 'CP1006', 'CP1026', 'CP1125',
-                             'CP1140', 'CP1250', 'CP1251', 'CP1252', 'CP1253', 'CP1254', 'CP1255', 'CP1256', 'CP1257',
-                             'CP1258',
-                             'CP273', 'CP424', 'CP437', 'CP500', 'CP720', 'CP737', 'CP775', 'CP850', 'CP852', 'CP855',
-                             'CP856', 'CP857', 'CP858', 'CP860', 'CP861', 'CP862', 'CP863', 'CP864', 'CP865', 'CP866',
-                             'CP869', 'CP874', 'CP875', 'CP932', 'CP949', 'CP950', 'EUC_JISX0213', 'EUC_JIS_2004',
-                             'EUC_JP', 'EUC_KR', 'GB18030', 'GB2312', 'GBK', 'HP_ROMAN8', 'HZ', 'IDNA', 'ISO2022_JP',
-                             'ISO2022_JP_1', 'ISO2022_JP_2', 'ISO2022_JP_2004', 'ISO2022_JP_3', 'ISO2022_JP_EXT',
-                             'ISO2022_KR', 'ISO8859_1', 'ISO8859_10', 'ISO8859_11', 'ISO8859_13', 'ISO8859_14',
-                             'ISO8859_15', 'ISO8859_16', 'ISO8859_2', 'ISO8859_3', 'ISO8859_4', 'ISO8859_5',
-                             'ISO8859_6', 'ISO8859_7', 'ISO8859_8', 'ISO8859_9', 'JOHAB', 'KOI8_R', 'KOI8_T', 'KOI8_U',
-                             'KZ1048', 'LATIN_1', 'MAC_ARABIC', 'MAC_CROATIAN', 'MAC_CYRILLIC', 'MAC_FARSI',
-                             'MAC_GREEK', 'MAC_ICELAND', 'MAC_LATIN2', 'MAC_ROMAN', 'MAC_ROMANIAN', 'MAC_TURKISH',
-                             'MBCS', 'OEM', 'PALMOS', 'PTCP154', 'PUNYCODE', 'RAW_UNICODE_ESCAPE',
-                             'SHIFT_JIS', 'SHIFT_JISX0213', 'SHIFT_JIS_2004', 'TIS_620', 'UNICODE_ESCAPE', 'UTF-16',
-                             'UTF-16-BE', 'UTF-16-LE', 'UTF-32', 'UTF-32-BE', 'UTF-32-LE', 'UTF-7', 'UTF-8',
-                             'UTF-8-SIG']
+        m_listBox1Choices = ['ANSI', 'ASCII', 'BIG5', 'BIG5HKSCS', 'CP037', 'CP273', 'CP424', 'CP437', 'CP500', 'CP720',
+                             'CP737', 'CP775', 'CP850', 'CP852', 'CP855', 'CP856', 'CP857', 'CP858', 'CP860', 'CP861',
+                             'CP862', 'CP863', 'CP864', 'CP865', 'CP866', 'CP869', 'CP874', 'CP875', 'CP932', 'CP949',
+                             'CP950', 'CP1006', 'CP1026', 'CP1125', 'CP1140', 'CP1250', 'CP1251', 'CP1252', 'CP1253',
+                             'CP1254', 'CP1255', 'CP1256', 'CP1257', 'CP1258', 'EUC_JP', 'EUC_JIS_2004', 'EUC_JISX0213',
+                             'EUC_KR', 'GB2312', 'GBK', 'GB18030', 'HZ', 'ISO2022_JP', 'ISO2022_JP_1', 'ISO2022_JP_2',
+                             'ISO2022_JP_2004', 'ISO2022_JP_3', 'ISO2022_JP_EXT', 'ISO2022_KR', 'LATIN_1', 'ISO8859_2',
+                             'ISO8859_3', 'ISO8859_4', 'ISO8859_5', 'ISO8859_6', 'ISO8859_7', 'ISO8859_8', 'ISO8859_9',
+                             'ISO8859_10', 'ISO8859_11', 'ISO8859_13', 'ISO8859_14', 'ISO8859_15', 'ISO8859_16',
+                             'JOHAB', 'KOI8_R', 'KOI8_T', 'KOI8_U', 'KZ1048', 'MAC_CYRILLIC', 'MAC_GREEK',
+                             'MAC_ICELAND', 'MAC_LATIN2', 'MAC_ROMAN', 'MAC_TURKISH', 'OEM', 'PTCP154', 'SHIFT_JIS',
+                             'SHIFT_JIS_2004', 'SHIFT_JISX0213', 'UTF_32', 'UTF_32_BE', 'UTF_32_LE', 'UTF_16',
+                             'UTF_16_BE', 'UTF_16_LE', 'UTF_7', 'UTF_8', 'UTF_8_SIG']
+
         self.m_listBox1 = wx.ListBox(self, wx.ID_ANY, wx.DefaultPosition,
                                      wx.Size(int('%.0f' % (230 * self.GetDPI()[0] / 96)),
                                              int('%.0f' % (290 * self.GetDPI()[0] / 96))), m_listBox1Choices,
                                      wx.LB_NEEDED_SB | wx.LB_SINGLE)
         try:
-            self.m_listBox1.SetSelection(m_listBox1Choices.index(coding.upper()))
+            self.m_listBox1.SetSelection(m_listBox1Choices.index(find_encoding_key(coding)))
         except ValueError:
-            self.m_listBox1.SetSelection(111)
+            self.m_listBox1.SetSelection(97)
         bSizer101.Add(self.m_listBox1, 0, wx.ALL, 5)
 
         gSizer4.Add(bSizer101, 1, wx.EXPAND, 5)
@@ -1959,12 +1976,12 @@ class MyDialog5(wx.Dialog):
 
         bSizer10.Add(m_sdbSizer1, 0, wx.EXPAND | wx.TOP|wx.BOTTOM|wx.LEFT, 5)
 
-        if coding.upper() not in m_listBox1Choices:
+        if find_encoding_key(coding) not in m_listBox1Choices:
             encoding = 'utf-8'
         else:
             encoding = coding
         try:
-            with open(file, 'r', encoding=encoding) as display:
+            with open(file, 'r', encoding=encoding, errors='replace') as display:
                 self.m_richText1.SetValue(display.read())
                 self.m_sdbSizer1OK.Enable(True)
         except Exception as err:
@@ -1995,7 +2012,7 @@ class MyDialog5(wx.Dialog):
         global encoding, file
         encoding = self.m_listBox1.GetString(self.m_listBox1.GetSelection())
         try:
-            with open(file, 'r', encoding=encoding) as display:
+            with open(file, 'r', encoding=encoding, errors='replace') as display:
                 self.m_richText1.SetValue(display.read())
                 self.m_sdbSizer1OK.Enable(True)
         except Exception as err:
@@ -2131,8 +2148,8 @@ class MyDialog7(wx.Dialog):
 
         bSizer13.Add(fgSizer1, 0, wx.EXPAND, 5)
 
-        self.m_richText3 = wx.richtext.RichTextCtrl(self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize,
-                                                    wx.TE_READONLY | wx.VSCROLL | wx.HSCROLL | wx.NO_BORDER | wx.WANTS_CHARS)
+        #self.m_richText3 = wx.richtext.RichTextCtrl(self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize,
+                                                    #wx.TE_READONLY | wx.VSCROLL | wx.HSCROLL | wx.NO_BORDER | wx.WANTS_CHARS)
         self.m_htmlWin1 = wx.html.HtmlWindow(self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize,
                                              wx.html.HW_SCROLLBAR_AUTO)
         self.m_htmlWin1.SetPage(markdown.markdown(language.s120()))
@@ -2170,6 +2187,7 @@ class MyDialog7(wx.Dialog):
 
         # Connect Events
         self.Bind(wx.EVT_CLOSE, self.close)
+        self.m_htmlWin1.Bind(wx.html.EVT_HTML_LINK_CLICKED, self.link)
         self.m_sdbSizer5Cancel.Bind(wx.EVT_BUTTON, self.close)
         self.m_sdbSizer5OK.Bind(wx.EVT_BUTTON, self.update)
 
@@ -2181,6 +2199,9 @@ class MyDialog7(wx.Dialog):
         if self.m_sdbSizer5Cancel.IsEnabled():
             frame.Enable(True)
             self.Show(False)
+
+    def link(self, event):
+        os.startfile(event.GetLinkInfo().GetHref())
 
     def update(self, event, retry=0, usecache=False):
         if self.m_sdbSizer5OK.GetLabel() == language.s122():
@@ -2247,7 +2268,7 @@ class MyDialog7(wx.Dialog):
                     if process.poll() is not None:
                         break
                     with open(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'wgetlog.log'), 'r',
-                              encoding='utf-8') as f:
+                              encoding='utf-8', errors='replace') as f:
                         a = f.readlines()
                     try:
                         if a[-2].rstrip().split()[1] == '..........':
@@ -2276,13 +2297,14 @@ class MyDialog7(wx.Dialog):
                 with open(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'CurrentVersion.json'), 'r',
                           encoding='utf-8') as f:
                     self.current_version = json.loads(f.read())
-                if tuple(self.current_version['version']) > version:
+                if tuple(self.current_version['version']) > version or str(version) in self.current_version['rollback']:
                     frame.SetStatusText(language.s139())
                 try:
                     self.m_htmlWin1.SetPage(markdown.markdown(self.current_version['note'][language.LANGUAGE[1]]))
                     self.m_staticText14.SetLabel(
                         language.s1() + '\n' + language.s118() + '\n' + language.s119(self.current_version['version']))
-                    if tuple(self.current_version['version']) > version:
+                    if tuple(self.current_version['version']) > version or str(version) in self.current_version[
+                        'rollback']:
                         self.m_sdbSizer5OK.SetLabel(language.s124())
                         if str(version) in self.current_version['link'].keys():
                             self.m_staticText15.SetLabel(language.s125() + self.current_version['link'][str(version)][0])
@@ -2299,7 +2321,7 @@ class MyDialog7(wx.Dialog):
             elif mode == 'download':
                 self.Destroy()
                 if str(version) in self.current_version['link'].keys():
-                    os.popen(output_path + ' /SILENT /PASSWORD=20W1B-M059N-B18FV-J433I-K7DF1')
+                    os.popen(output_path + ' /SILENT /PASSWORD=67N8F-38W0A-RNI22-YX1AQ-11AZ5')
                 else:
                     os.popen(output_path)
                 frame.Destroy()
@@ -2457,7 +2479,7 @@ class MyDialog8 ( wx.Dialog ):
             index = frame.m_listCtrl2.InsertItem(frame.m_listCtrl2.GetItemCount(),
                                                  str(frame.m_listCtrl2.GetItemCount() + 1))
             frame.m_listCtrl2.SetItem(index, 1, self.m_filePicker2.GetPath())
-            frame.m_listCtrl2.SetItem(index, 2, self.m_textCtrl3.GetValue())
+            frame.m_listCtrl2.SetItem(index, 2, self.m_textCtrl3.GetValue().lower())
             frame.m_listCtrl2.SetItem(index, 3, '')
             information.append('/')
             frame.sort(None)
@@ -2543,23 +2565,28 @@ class MyDialog9 ( wx.Dialog ):
         frame.Enable(True)
         self.Destroy()
         for i in self.m_richText4.GetValue().split('\n'):
-            index = frame.m_listCtrl2.InsertItem(frame.m_listCtrl2.GetItemCount(),
-                                                 str(frame.m_listCtrl2.GetItemCount() + 1))
-            splitedline = i.split(' ')
-            if len(splitedline) >= 2:
-                if splitedline[1] == '':
+            if i:
+                splitedline = i.split(' ')
+                while len(splitedline) >= 2 and splitedline[1] == '':
                     del splitedline[1]
-            frame.m_listCtrl2.SetItem(index, 1, '')
-            fah = ''
-            for j in splitedline[1:]:
-                fah += j + ' '
-            fah = fah[:-1]
-            if (fah[0] == '"' and fah[-1] == '"') or (fah[0] == "'" and fah[-1] == "'"):
-                fah = fah[1:-1]
-            frame.m_listCtrl2.SetItem(index, 1, fah)
-            frame.m_listCtrl2.SetItem(index, 2, i.split(' ')[0])
-            frame.m_listCtrl2.SetItem(index, 3, '')
-            information.append('/')
+                fah = ''
+                for j in splitedline[1:]:
+                    fah += j + ' '
+
+                index = frame.m_listCtrl2.InsertItem(frame.m_listCtrl2.GetItemCount(),
+                                                     str(frame.m_listCtrl2.GetItemCount() + 1))
+                fah = fah[:-1]
+                if fah:
+                    if (fah[0] == '"' and fah[-1] == '"') or (fah[0] == "'" and fah[-1] == "'"):
+                        fah = fah[1:-1]
+                    if fah[0] == '*':
+                        fah = fah[1:]
+                    frame.m_listCtrl2.SetItem(index, 1, fah)
+                else:
+                    frame.m_listCtrl2.SetItem(index, 1, '')
+                frame.m_listCtrl2.SetItem(index, 2, i.split(' ')[0].lower())
+                frame.m_listCtrl2.SetItem(index, 3, '')
+                information.append('/')
         frame.sort(None)
 
 
@@ -2567,7 +2594,11 @@ class MyDialog9 ( wx.Dialog ):
 if __name__ == '__main__':
     if len(sys.argv) > 1:
         if sys.argv[1] == '/Clean':
-            shutil.rmtree(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'Update'))
+            time.sleep(1)
+            if os.path.isdir(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'Update')):
+                shutil.rmtree(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'Update'))
+            for i in glob.glob(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'FilesCheckerUpdate*')):
+                os.remove(i)
     app = wx.App()
     sys.path.append(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3'))
     sys.path.append(os.path.dirname(sys.argv[0]))
@@ -2666,9 +2697,25 @@ if __name__ == '__main__':
             if toastone.ShowModal() == wx.ID_YES:  # 如果点击了提示框的确定按钮
                 toastone.Destroy()
     else:
-        frame = main(None)
-        frame.Show(True)
-        updatedialog = MyDialog7(None)
-        #updatedialog.update(updatedialog, usecache=True)
-        #updatedialog.Destroy()
-        app.MainLoop()
+        if os.path.isfile(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'LOCK')):
+            try:
+                os.remove(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'LOCK'))
+            except PermissionError:
+                toastone = wx.MessageDialog(None, language.s150(),
+                                            language.s1(),
+                                            wx.OK | wx.OK_DEFAULT | wx.ICON_ERROR)
+                toastone.SetOKLabel(language.s57())
+                if toastone.ShowModal() == wx.ID_YES:  # 如果点击了提示框的确定按钮
+                    toastone.Destroy()
+            else:
+                lockfile = open(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'LOCK'), 'xb')
+                frame = main(None)
+                frame.Show(True)
+                updatedialog = MyDialog7(None)
+                app.MainLoop()
+        else:
+            lockfile = open(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'LOCK'), 'xb')
+            frame = main(None)
+            frame.Show(True)
+            updatedialog = MyDialog7(None)
+            app.MainLoop()

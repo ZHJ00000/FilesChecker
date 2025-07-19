@@ -1,7 +1,7 @@
 # coding=utf-8
 # Copyright ©2025 ZHJ.
 
-FOR = ['FilesChecker', (3, 1, 1), 'Windows']
+FOR = ['FilesChecker', (3, 1, 2), 'Windows']
 LANGUAGE = [['Chinese (Traditional)_Taiwan', 'Chinese (Traditional)_Hong Kong SAR', 'Chinese (Traditional)_Macao SAR'], '繁體中文 (中國香港特別行政區、中國澳門特別行政區、中國臺灣)']
 def s1():
     return '文件校驗器'
@@ -307,3 +307,5 @@ def s148():
     return '啟動軟件時'
 def s149():
     return '默認校驗模式：'
+def s150():
+    return '另一個實例正在運行。'
