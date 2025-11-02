@@ -38,6 +38,8 @@ FilesChecker is a simple and easy-to-use batch file validation tool that support
 
 We currently only provide installation programs for Windows 64 bit and require Windows 8.1 and above versions. Other platforms can try downloading the source code and using it.
 
+[End of Support for Windows 8.1](https://github.com/ZHJ00000/FilesChecker/wiki/End%20of%20support%20for%20Windows%208.1)
+
 ## Software Languages
 
 At present, English, Simplified Chinese, and Traditional Chinese are available. Developers from all over the world are welcome to provide more language translations for this software. The development document can be found [here](https://github.com/ZHJ00000/FilesChecker/wiki/Language%20(Develop)).

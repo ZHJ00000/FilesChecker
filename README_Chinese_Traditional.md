@@ -38,6 +38,8 @@
 
 暫時只提供適用於Windows 64比特的安裝程式，並要求Windows 8.1及以上版本，其他平臺可嘗試下載原始程式碼並使用。
 
+[終止對Windows 8.1的支持（簡體中文）](https://github.com/ZHJ00000/FilesChecker/wiki/%E7%BB%88%E6%AD%A2%E5%AF%B9Windows%208.1%E7%9A%84%E6%94%AF%E6%8C%81)
+
 ## 軟體語言
 
 現時提供英語、簡體中文和繁體中文，歡迎來自全球各地的開發者為本軟件提供更多語言的翻譯，開發檔案在[此處 (僅英語)](https://github.com/ZHJ00000/FilesChecker/wiki/Language%20(Develop))。

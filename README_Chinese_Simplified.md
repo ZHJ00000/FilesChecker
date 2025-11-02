@@ -41,6 +41,8 @@
 
 暂时只提供适用于Windows 64位的安装程序，并要求Windows 8.1及以上版本，其他平台可尝试下载源代码并使用。
 
+[终止对Windows 8.1的支持](https://github.com/ZHJ00000/FilesChecker/wiki/%E7%BB%88%E6%AD%A2%E5%AF%B9Windows%208.1%E7%9A%84%E6%94%AF%E6%8C%81)
+
 ## 软件语言
 
 目前提供英语、简体中文和繁体中文，欢迎来自全球各地的开发者为本软件提供更多语言的翻译，开发文档在[此处 (仅英语)](https://github.com/ZHJ00000/FilesChecker/wiki/Language%20(Develop))。
