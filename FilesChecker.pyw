@@ -36,7 +36,7 @@ command = ''
 export = ''
 isexport = False
 #os.chdir(os.path.dirname(sys.argv[0]))
-version = (3, 1, 2)
+version = (3, 1, 3)
 with open(os.path.join(os.path.dirname(sys.argv[0]), "Encodings.txt"), 'r', encoding='utf-8') as f:
     encodinglist = f.readlines()
 encodingslist = [[], []]
@@ -64,7 +64,7 @@ def intask(file, encoding):
         toastone = wx.MessageDialog(None, language.s56() + type(err).__name__ + ': ' + str(err), language.s81(),
                                     wx.OK | wx.OK_DEFAULT | wx.ICON_ERROR)
         toastone.SetOKLabel(language.s57())
-        if toastone.ShowModal() == wx.ID_YES:  # 如果点击了提示框的确定按钮
+        if toastone.ShowModal() == wx.ID_OK:  # 如果点击了提示框的确定按钮
             toastone.Destroy()
     else:
         for i in range(0, len(l)):
@@ -91,7 +91,7 @@ def intask(file, encoding):
             toastone = wx.MessageDialog(None, language.s58(), language.s81(),
                                         wx.OK | wx.OK_DEFAULT | wx.ICON_ERROR)
             toastone.SetOKLabel(language.s57())
-            if toastone.ShowModal() == wx.ID_YES:  # 如果点击了提示框的确定按钮
+            if toastone.ShowModal() == wx.ID_OK:  # 如果点击了提示框的确定按钮
                 toastone.Destroy()
         else:
             for i in range(0, len(l)):
@@ -140,7 +140,7 @@ def intask(file, encoding):
                 toastone = wx.MessageDialog(None, language.s58(), language.s81(),
                                             wx.OK | wx.OK_DEFAULT | wx.ICON_ERROR)
                 toastone.SetOKLabel(language.s57())
-                if toastone.ShowModal() == wx.ID_YES:  # 如果点击了提示框的确定按钮
+                if toastone.ShowModal() == wx.ID_OK:  # 如果点击了提示框的确定按钮
                     toastone.Destroy()
                 tf = False
     if tf:
@@ -153,13 +153,13 @@ def intask(file, encoding):
                 toastone = wx.MessageDialog(None, language.s59(), language.s81(),
                                             wx.OK | wx.OK_DEFAULT | wx.ICON_ERROR)
                 toastone.SetOKLabel(language.s57())
-                if toastone.ShowModal() == wx.ID_YES:  # 如果点击了提示框的确定按钮
+                if toastone.ShowModal() == wx.ID_OK:  # 如果点击了提示框的确定按钮
                     toastone.Destroy()
         except IndexError:
             toastone = wx.MessageDialog(None, language.s61(), language.s62(),
                                         wx.OK | wx.OK_DEFAULT | wx.ICON_WARNING)
             toastone.SetOKLabel(language.s57())
-            if toastone.ShowModal() == wx.ID_YES:  # 如果点击了提示框的确定按钮
+            if toastone.ShowModal() == wx.ID_OK:  # 如果点击了提示框的确定按钮
                 toastone.Destroy()
             tf = False
     if tf:
@@ -212,7 +212,7 @@ def intask(file, encoding):
             toastone = wx.MessageDialog(None, language.s61(), language.s62(),
                                         wx.OK | wx.OK_DEFAULT | wx.ICON_WARNING)
             toastone.SetOKLabel(language.s57())
-            if toastone.ShowModal() == wx.ID_YES:  # 如果点击了提示框的确定按钮
+            if toastone.ShowModal() == wx.ID_OK:  # 如果点击了提示框的确定按钮
                 toastone.Destroy()
         frame.sort(None)
 
@@ -496,7 +496,7 @@ class main(wx.Frame):
             toastone = wx.MessageDialog(None, language.s75(type(err).__name__ + ': ' + str(err)), language.s81(),
                                         wx.OK | wx.OK_DEFAULT | wx.ICON_ERROR)
             toastone.SetOKLabel(language.s57())
-            if toastone.ShowModal() == wx.ID_YES:  # 如果点击了提示框的确定按钮
+            if toastone.ShowModal() == wx.ID_OK:  # 如果点击了提示框的确定按钮
                 toastone.Destroy()
 
     def startcheck(self, event):
@@ -837,7 +837,9 @@ class main(wx.Frame):
             self.m_menuItem3.Enable(True)
             self.m_menuItem10.Enable(True)
             self.m_menuItem172.Enable(True)
-            self.m_menuItem171.Enable(True)
+            if '/DEBUG:ForceEnableUpdate' in sys.argv[1:] or os.path.basename(sys.argv[0]).split('.')[
+                -1].lower() == 'exe':
+                self.m_menuItem171.Enable(True)
             self.m_choice1.Enable(True)
             self.m_choice4.Enable(True)
             self.m_button1.Enable(True)
@@ -860,14 +862,14 @@ class main(wx.Frame):
                                                     language.s81(),
                                                     wx.OK | wx.OK_DEFAULT | wx.ICON_ERROR)
                         toastone.SetOKLabel(language.s57())
-                        if toastone.ShowModal() == wx.ID_YES:  # 如果点击了提示框的确定按钮
+                        if toastone.ShowModal() == wx.ID_OK:  # 如果点击了提示框的确定按钮
                             toastone.Destroy()
                 except Exception as err:
                     toastone = wx.MessageDialog(None, language.s75(type(err).__name__ + ': ' + str(err)),
                                                 language.s81(),
                                                 wx.OK | wx.OK_DEFAULT | wx.ICON_ERROR)
                     toastone.SetOKLabel(language.s57())
-                    if toastone.ShowModal() == wx.ID_YES:  # 如果点击了提示框的确定按钮
+                    if toastone.ShowModal() == wx.ID_OK:  # 如果点击了提示框的确定按钮
                         toastone.Destroy()
             self.SetStatusText('')
 
@@ -1016,7 +1018,7 @@ class main(wx.Frame):
                 toastone = wx.MessageDialog(None, language.s75(type(err).__name__ + ': ' + str(err)), language.s81(),
                                             wx.OK | wx.OK_DEFAULT | wx.ICON_ERROR)
                 toastone.SetOKLabel(language.s57())
-                if toastone.ShowModal() == wx.ID_YES:  # 如果点击了提示框的确定按钮
+                if toastone.ShowModal() == wx.ID_OK:  # 如果点击了提示框的确定按钮
                     toastone.Destroy()
             self.SetStatusText('')
 
@@ -1124,12 +1126,16 @@ class main(wx.Frame):
         self.m_listCtrl2.DeleteItem(self.m_listCtrl2.GetFocusedItem())
         listitems = []
         for i in range(0, self.m_listCtrl2.GetItemCount()):
-            if self.m_listCtrl2.GetItemText(i, 1) == '':
+            if self.m_listCtrl2.GetItemText(i, 1) == '' and self.m_choice4.GetSelection() == 0:
                 listitems.append([int(self.m_listCtrl2.GetItemText(i, 0)), -1,
                                   self.m_listCtrl2.GetItemText(i, 2), self.m_listCtrl2.GetItemText(i, 3)])
             else:
-                listitems.append([int(self.m_listCtrl2.GetItemText(i, 0)), int(self.m_listCtrl2.GetItemText(i, 1)),
-                                  self.m_listCtrl2.GetItemText(i, 2), self.m_listCtrl2.GetItemText(i, 3)])
+                if self.m_choice4.GetSelection() == 0:
+                    listitems.append([int(self.m_listCtrl2.GetItemText(i, 0)), int(self.m_listCtrl2.GetItemText(i, 1)),
+                                      self.m_listCtrl2.GetItemText(i, 2), self.m_listCtrl2.GetItemText(i, 3)])
+                elif self.m_choice4.GetSelection() == 1:
+                    listitems.append([int(self.m_listCtrl2.GetItemText(i, 0)), self.m_listCtrl2.GetItemText(i, 1),
+                                      self.m_listCtrl2.GetItemText(i, 2), self.m_listCtrl2.GetItemText(i, 3)])
         listitems = sorted(listitems, key=lambda x: x[0],
                            reverse=False)
         for i in range(0, self.m_listCtrl2.GetItemCount()):
@@ -1137,14 +1143,32 @@ class main(wx.Frame):
         if self.m_listCtrl2.GetSortIndicator() != -1:
             listitems = sorted(listitems, key=lambda x: x[self.m_listCtrl2.GetSortIndicator()],
                                reverse=not self.m_listCtrl2.IsAscendingSortIndicator())
-        for i in range(0, len(listitems)):
-            self.m_listCtrl2.SetItem(i, 0, str(listitems[i][0]))
-            if listitems[i][1] == -1:
-                self.m_listCtrl2.SetItem(i, 1, '')
-            else:
-                self.m_listCtrl2.SetItem(i, 1, str(listitems[i][1]))
-            self.m_listCtrl2.SetItem(i, 2, listitems[i][2])
-            self.m_listCtrl2.SetItem(i, 3, listitems[i][3])
+        if self.m_choice4.GetSelection() == 0:
+            for i in range(0, len(listitems)):
+                self.m_listCtrl2.SetItem(i, 0, str(listitems[i][0]))
+                if listitems[i][1] == -1:
+                    self.m_listCtrl2.SetItem(i, 1, '')
+                else:
+                    self.m_listCtrl2.SetItem(i, 1, str(listitems[i][1]))
+                self.m_listCtrl2.SetItem(i, 2, listitems[i][2])
+                self.m_listCtrl2.SetItem(i, 3, listitems[i][3])
+        elif self.m_choice4.GetSelection() == 1:
+            for i in range(0, len(listitems)):
+                self.m_listCtrl2.SetItem(i, 0, str(listitems[i][0]))
+                if listitems[i][3] == -1:
+                    self.m_listCtrl2.SetItem(i, 3, '')
+                    self.m_listCtrl2.SetItemBackgroundColour(i, wx.Colour(-1, -1, -1))
+                elif listitems[i][3] == -2:
+                    self.m_listCtrl2.SetItem(i, 3, language.s81())
+                    self.m_listCtrl2.SetItemBackgroundColour(i, wx.Colour(255, 235, 156))  # Yellow
+                else:
+                    self.m_listCtrl2.SetItem(i, 3, str(listitems[i][3]))
+                    if str(listitems[i][3]) == '1':
+                        self.m_listCtrl2.SetItemBackgroundColour(i, wx.Colour(198, 239, 206))  # Green
+                    elif str(listitems[i][3]) == '0':
+                        self.m_listCtrl2.SetItemBackgroundColour(i, wx.Colour(255, 199, 206))  # Red
+                self.m_listCtrl2.SetItem(i, 1, listitems[i][1])
+                self.m_listCtrl2.SetItem(i, 2, listitems[i][2])
 
     def setsort(self, event):
         if self.m_listCtrl2.GetSortIndicator() == -1 or self.m_listCtrl2.GetSortIndicator() != event.GetColumn():
@@ -1541,7 +1565,7 @@ class MyDialog1(wx.Dialog):
             toastone = wx.MessageDialog(None, language.s91(), language.s81(),
                                         wx.OK_DEFAULT | wx.ICON_ERROR)
             toastone.SetOKLabel(language.s57())
-            if toastone.ShowModal() == wx.ID_YES:  # 如果点击了提示框的确定按钮
+            if toastone.ShowModal() == wx.ID_OK:  # 如果点击了提示框的确定按钮
                 toastone.Destroy()
         else:
             isexport = self.m_checkBox2.GetValue()
@@ -1565,7 +1589,7 @@ class MyDialog1(wx.Dialog):
             toastone = wx.MessageDialog(None, language.s46(), language.s81(),
                                         wx.OK | wx.OK_DEFAULT | wx.ICON_ERROR)
             toastone.SetOKLabel(language.s57())
-            if toastone.ShowModal() == wx.ID_YES:  # 如果点击了提示框的确定按钮
+            if toastone.ShowModal() == wx.ID_OK:  # 如果点击了提示框的确定按钮
                 toastone.Destroy()
         else:
             with open(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'newlanguage.py'),
@@ -1758,7 +1782,7 @@ class MyDialog3(wx.Dialog):
         bSizer6.Add(self.m_bitmap1, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 5)
 
         self.m_staticText1 = wx.StaticText(self, wx.ID_ANY,
-                                           language.s45() + '\n' + language.s47(sys.version.partition(' ')[0],
+                                           language.s45(version) + '\n' + language.s47(sys.version.partition(' ')[0],
                                                                                 wx.version().partition(' ')[0]) +
                                            '\n' + 'Copyright ©2025 ZHJ.' + '\n',
                                            wx.DefaultPosition, wx.DefaultSize, wx.ALIGN_CENTER_HORIZONTAL)
@@ -2140,7 +2164,7 @@ class MyDialog7(wx.Dialog):
         fgSizer1.Add(self.m_bitmap2, 0, wx.ALL, 5)
 
         self.m_staticText14 = wx.StaticText(self, wx.ID_ANY,
-                                            language.s1() + '\n' + language.s118() + '\n' + language.s119(None),
+                                            language.s1() + '\n' + language.s118(version) + '\n' + language.s119(None),
                                             wx.DefaultPosition, wx.DefaultSize, 0)
         self.m_staticText14.Wrap(-1)
 
@@ -2206,35 +2230,37 @@ class MyDialog7(wx.Dialog):
     def update(self, event, retry=0, usecache=False):
         if self.m_sdbSizer5OK.GetLabel() == language.s122():
             self.m_htmlWin1.SetPage(markdown.markdown(language.s120()))
-            self.m_staticText14.SetLabel(language.s1() + '\n' + language.s118() + '\n' + language.s119(None))
+            self.m_staticText14.SetLabel(language.s1() + '\n' + language.s118(version) + '\n' + language.s119(None))
             self.m_sdbSizer5OK.Enable(False)
             if not retry:
                 thread2 = threading.Thread(target=self.download, args=(
                     'check',
-                    'https://github.com/ZHJ00000/OTA_Service/releases/download/CurrentVersion/CurrentVersion.json',
-                    os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'CurrentVersion.json'), usecache),
+                    'https://github.com/ZHJ00000/OTA_Service/releases/download/CurrentVersion/CurrentVersion_v2.json',
+                    os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'CurrentVersion_v2.json'), usecache),
                                            daemon=True)
             else:
                 thread2 = threading.Thread(target=self.download, args=(
                     'check',
-                    'https://gitee.com/zhj00/OTA_Service/releases/download/FilesChecker/CurrentVersion.json',
-                    os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'CurrentVersion.json'), usecache),
+                    'https://gitee.com/zhj00/OTA_Service/releases/download/FilesChecker/CurrentVersion_v2.json',
+                    os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'CurrentVersion_v2.json'), usecache),
                                            daemon=True)
             thread2.start()
         elif self.m_sdbSizer5OK.GetLabel() == language.s124():
             self.m_staticText15.Show(True)
             self.m_sdbSizer5OK.Enable(False)
             self.m_sdbSizer5Cancel.Enable(False)
+            if not os.path.isdir(os.path.join(os.environ["APPDATA"], 'ZHJ', 'Updates')):
+                os.mkdir(os.path.join(os.environ["APPDATA"], 'ZHJ', 'Updates'))
             if str(version) in self.current_version['link'].keys():
                 thread2 = threading.Thread(target=self.download, args=(
                     'download', self.current_version['link'][str(version)][self.retry + 1],
-                    os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3',
+                    os.path.join(os.environ["APPDATA"], 'ZHJ', 'Updates',
                                  os.path.basename(self.current_version['link'][str(version)][self.retry + 1]))),
                                            daemon=True)
             else:
                 thread2 = threading.Thread(target=self.download, args=(
                     'download', self.current_version['link']['other'][self.retry + 1],
-                    os.path.join(os.environ["TEMP"],
+                    os.path.join(os.environ["APPDATA"], 'ZHJ', 'Updates',
                                  os.path.basename(self.current_version['link']['other'][self.retry + 1]))), daemon=True)
             thread2.start()
             self.m_gauge3.Show(True)
@@ -2243,12 +2269,12 @@ class MyDialog7(wx.Dialog):
     def download(self, mode, url, output_path, usecache=None):
         global updatedialog
         if os.path.isfile(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3',
-                                       'CurrentVersion.json')) and mode == 'check' and usecache:
+                                       'CurrentVersion_v2.json')) and mode == 'check' and usecache:
             if datetime.datetime.fromtimestamp(os.path.getmtime(
                     os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3',
-                                 'CurrentVersion.json'))).date() == datetime.datetime.now().date():
+                                 'CurrentVersion_v2.json'))).date() == datetime.datetime.now().date():
                 usecache = bool(os.path.getsize(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3',
-                                                             'CurrentVersion.json')))
+                                                             'CurrentVersion_v2.json')))
             else:
                 usecache = False
         else:
@@ -2257,12 +2283,10 @@ class MyDialog7(wx.Dialog):
             with open(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'wgetlog.log'), 'w',
                       encoding='utf-8') as f:
                 pass
-            process = subprocess.Popen(
-                [os.path.join(os.path.dirname(sys.argv[0]), "wget.exe"), '-o',
-                 os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'wgetlog.log'),
-                 '-t 3 -T 5',
-                 '-O',
-                 output_path, '--progress=bar', url], creationflags=subprocess.CREATE_NO_WINDOW)
+            process = subprocess.Popen([os.path.join(os.path.dirname(sys.argv[0]), "wget.exe"), '-o',
+                                        os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'wgetlog.log'),
+                                        '-t', '3', '-T', '5', '-O', output_path, url],
+                                       creationflags=subprocess.CREATE_NO_WINDOW)
             if mode == 'download':
                 while True:
                     if process.poll() is not None:
@@ -2294,15 +2318,56 @@ class MyDialog7(wx.Dialog):
         if rc == 0:
             if mode == 'check':
                 self.retry = 0
-                with open(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'CurrentVersion.json'), 'r',
+                with open(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'CurrentVersion_v2.json'), 'r',
                           encoding='utf-8') as f:
                     self.current_version = json.loads(f.read())
+                def releaseselect(osver):
+                    osver = tuple(osver)
+                    for i in self.current_version['releases'].keys():
+                        if i != 'default':
+                            scope = i[1:-1].split(',')
+                            scope[0] = list(scope[0].split('.'))
+                            if scope[0] != ['-']:
+                                for j in range(len(scope[0])):
+                                    scope[0][j] = int(scope[0][j])
+                            scope[1] = list(scope[1].split('.'))
+                            if scope[1] != ['+']:
+                                for j in range(len(scope[1])):
+                                    scope[1][j] = int(scope[1][j])
+                            scope[0] = tuple(scope[0])
+                            scope[1] = tuple(scope[1])
+                            if i[0] == '(' and i[-1] == ']':
+                                if scope[0] == ('-',):
+                                    if osver <= scope[1]:
+                                        return i
+                                else:
+                                    if osver <= scope[1] and osver > scope[0]:
+                                        return i
+                            elif i[0] == '[' and i[-1] == ')':
+                                if scope[1] == ('+',):
+                                    if osver >= scope[0]:
+                                        return i
+                                else:
+                                    if osver >= scope[0] and osver < scope[1]:
+                                        return i
+                            elif i[0] == '(' and i[-1] == ')':
+                                if osver > scope[0] and osver < scope[1]:
+                                    return i
+                            elif i[0] == '[' and i[-1] == ']':
+                                if osver >= scope[0] and osver <= scope[1]:
+                                    return i
+                    return 'default'
+                self.current_version = self.current_version['releases'][releaseselect(sysver)]
+
                 if tuple(self.current_version['version']) > version or str(version) in self.current_version['rollback']:
                     frame.SetStatusText(language.s139())
                 try:
-                    self.m_htmlWin1.SetPage(markdown.markdown(self.current_version['note'][language.LANGUAGE[1]]))
+                    if language.LANGUAGE[2] in self.current_version['note'].keys():
+                        self.m_htmlWin1.SetPage(markdown.markdown(self.current_version['note'][language.LANGUAGE[2]]))
+                    else:
+                        self.m_htmlWin1.SetPage(markdown.markdown(self.current_version['note']['en_gb']))
                     self.m_staticText14.SetLabel(
-                        language.s1() + '\n' + language.s118() + '\n' + language.s119(self.current_version['version']))
+                        language.s1() + '\n' + language.s118(version) + '\n' + language.s119(self.current_version['version']))
                     if tuple(self.current_version['version']) > version or str(version) in self.current_version[
                         'rollback']:
                         self.m_sdbSizer5OK.SetLabel(language.s124())
@@ -2319,27 +2384,62 @@ class MyDialog7(wx.Dialog):
                 except RuntimeError:
                     pass
             elif mode == 'download':
-                self.Destroy()
-                if str(version) in self.current_version['link'].keys():
-                    os.popen(output_path + ' /SILENT /PASSWORD=67N8F-38W0A-RNI22-YX1AQ-11AZ5')
+                def filehash(path, algorithm):
+                    size = os.path.getsize(path)  # 获取文件大小，单位是字节（byte）
+                    size1 = size
+                    with open(path, 'rb') as f:  # 以二进制模式读取文件
+                        while size >= 1024 * 1024:  # 当文件大于1MB时将文件分块读取
+                            algorithm.update(f.read(1024 * 1024))
+                            size -= 1024 * 1024
+                            progress = int('%.0f' % ((size1 - size) / size1*100))
+                            self.m_staticText15.SetLabel(language.s151() + str(progress) + '%')
+                            self.m_gauge3.SetValue(progress)
+                        algorithm.update(f.read())
+                    return (algorithm.hexdigest())  # 输出计算结果
+                tf = False
+                checksum = filehash(output_path, hashlib.sha3_256())
+                if os.path.basename(output_path) not in self.current_version['checksum'].keys():
+                    tf = True
+                elif checksum != self.current_version['checksum'][os.path.basename(output_path)]:
+                    tf = True
+                if tf:
+                    toastone = wx.MessageDialog(None, language.s152(),
+                                                language.s1(),
+                                                wx.OK | wx.OK_DEFAULT | wx.ICON_ERROR)
+                    toastone.SetOKLabel(language.s57())
+                    if toastone.ShowModal() == wx.ID_OK:  # 如果点击了提示框的确定按钮
+                        toastone.Destroy()
+                        self.m_htmlWin1.SetPage(markdown.markdown(language.s127()))
+                        self.m_staticText14.SetLabel(
+                            language.s1() + '\n' + language.s118(version) + '\n' + language.s119(None))
+                        self.m_sdbSizer5OK.SetLabel(language.s122())
+                        self.m_staticText15.Show(False)
+                        self.m_gauge3.Show(False)
+                        self.Layout()
+                        self.m_sdbSizer5OK.Enable(True)
+                        self.m_sdbSizer5Cancel.Enable(True)
                 else:
-                    os.popen(output_path)
-                frame.Destroy()
+                    self.Destroy()
+                    if str(version) in self.current_version['link'].keys():
+                        os.popen(output_path + ' /SILENT /PASSWORD=9I87R-54373-Z0RE6-AWSE1-S2D24')
+                    else:
+                        os.popen(output_path)
+                    frame.Destroy()
 
         else:
             try:
                 if str(version) in self.current_version['link'].keys():
                     tf = (mode == 'check' and self.retry == 1) or (
-                            mode == 'download' and len(
-                        self.current_version['link'][str(version)]) - 2 - self.retry == 0)
+                            mode == 'download' and not len(
+                        self.current_version['link'][str(version)]) - 2 - self.retry)
                 else:
                     tf = (mode == 'check' and self.retry == 1) or (
-                            mode == 'download' and len(
-                        self.current_version['link']['other']) - 2 - self.retry == 0)
+                            mode == 'download' and not len(
+                        self.current_version['link']['other']) - 2 - self.retry)
                 if tf:
                     self.m_htmlWin1.SetPage(markdown.markdown(language.s127()))
                     self.m_staticText14.SetLabel(
-                        language.s1() + '\n' + language.s118() + '\n' + language.s119(None))
+                        language.s1() + '\n' + language.s118(version) + '\n' + language.s119(None))
                     self.m_sdbSizer5OK.SetLabel(language.s122())
                     self.m_staticText15.Show(False)
                     self.m_gauge3.Show(False)
@@ -2593,10 +2693,12 @@ class MyDialog9 ( wx.Dialog ):
 
 if __name__ == '__main__':
     if len(sys.argv) > 1:
-        if sys.argv[1] == '/Clean':
+        if '/Clean' in sys.argv[1]:
             time.sleep(1)
             if os.path.isdir(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'Update')):
                 shutil.rmtree(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'Update'))
+            if os.path.isdir(os.path.join(os.environ["APPDATA"], 'ZHJ', 'Updates')):
+                shutil.rmtree(os.path.join(os.environ["APPDATA"], 'ZHJ', 'Updates'))
             for i in glob.glob(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'FilesCheckerUpdate*')):
                 os.remove(i)
     app = wx.App()
@@ -2622,7 +2724,7 @@ if __name__ == '__main__':
     import getlanguagelist
     for i in getlanguagelist.get():
         for j in i[0]:
-            languagedic[j] = [i[2], i[1]]
+            languagedic[j] = [i[3], i[1]]
     try:
         with open(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'Setting.json'), 'r',
                   encoding='utf-8') as settingfile:
@@ -2694,7 +2796,7 @@ if __name__ == '__main__':
             toastone = wx.MessageDialog(None, 'Unable to start program due to missing language pack.', 'FilesChecker',
                                         wx.OK | wx.OK_DEFAULT | wx.ICON_ERROR)
             toastone.SetOKLabel('&OK')
-            if toastone.ShowModal() == wx.ID_YES:  # 如果点击了提示框的确定按钮
+            if toastone.ShowModal() == wx.ID_OK:  # 如果点击了提示框的确定按钮
                 toastone.Destroy()
     else:
         if os.path.isfile(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'LOCK')):
@@ -2705,17 +2807,25 @@ if __name__ == '__main__':
                                             language.s1(),
                                             wx.OK | wx.OK_DEFAULT | wx.ICON_ERROR)
                 toastone.SetOKLabel(language.s57())
-                if toastone.ShowModal() == wx.ID_YES:  # 如果点击了提示框的确定按钮
+                if toastone.ShowModal() == wx.ID_OK:  # 如果点击了提示框的确定按钮
                     toastone.Destroy()
             else:
                 lockfile = open(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'LOCK'), 'xb')
                 frame = main(None)
                 frame.Show(True)
-                updatedialog = MyDialog7(None)
+                if '/DEBUG:ForceEnableUpdate' in sys.argv[1:] or os.path.basename(sys.argv[0]).split('.')[
+                    -1].lower() == 'exe':
+                    updatedialog = MyDialog7(None)
+                else:
+                    frame.m_menuItem171.Enable(False)
                 app.MainLoop()
         else:
             lockfile = open(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'LOCK'), 'xb')
             frame = main(None)
             frame.Show(True)
-            updatedialog = MyDialog7(None)
+            if '/DEBUG:ForceEnableUpdate' in sys.argv[1:] or os.path.basename(sys.argv[0]).split('.')[
+                -1].lower() == 'exe':
+                updatedialog = MyDialog7(None)
+            else:
+                frame.m_menuItem171.Enable(False)
             app.MainLoop()

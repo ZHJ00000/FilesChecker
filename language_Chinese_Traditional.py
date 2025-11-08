@@ -1,8 +1,8 @@
 # coding=utf-8
 # Copyright ©2025 ZHJ.
 
-FOR = ['FilesChecker', (3, 1, 2), 'Windows']
-LANGUAGE = [['Chinese (Traditional)_Taiwan', 'Chinese (Traditional)_Hong Kong SAR', 'Chinese (Traditional)_Macao SAR'], '繁體中文 (中國香港特別行政區、中國澳門特別行政區、中國臺灣)']
+FOR = ['FilesChecker', (3, 1, 3), 'Windows']
+LANGUAGE = [['Chinese (Traditional)_Taiwan', 'Chinese (Traditional)_Hong Kong SAR', 'Chinese (Traditional)_Macao SAR'], '繁體中文 (中國香港特別行政區、中國澳門特別行政區、中國臺灣)', 'zhtr']
 def s1():
     return '文件校驗器'
 def s2():
@@ -94,8 +94,8 @@ def s43():
     pass
 def s44():
     return '關於'
-def s45():
-    return '文件校驗器 v' + '.'.join(map(str, FOR[1]))
+def s45(ver):
+    return '文件校驗器 v' + '.'.join(map(str, ver))
 def s46():
     return '未安裝該語言包。'
 def s47(pyver, wxver):
@@ -240,8 +240,8 @@ def s116():
     return '軟體更新(&U)…'
 def s117():
     return '軟體更新'
-def s118():
-    return '當前版本：' + '.'.join(map(str, FOR[1]))
+def s118(ver):
+    return '當前版本：' + '.'.join(map(str, ver))
 def s119(version):
     if version:
         return '最新版本：' + '.'.join(map(str, version))
@@ -309,3 +309,7 @@ def s149():
     return '默認校驗模式：'
 def s150():
     return '另一個實例正在運行。'
+def s151():
+    return '正在校驗：'
+def s152():
+    return '更新檔案校驗錯誤，請檢查網絡連接。'

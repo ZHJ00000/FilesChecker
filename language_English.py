@@ -1,26 +1,26 @@
 # coding=utf-8
 # Copyright ©2025 ZHJ.
 
-FOR = ['FilesChecker', (3, 1, 2), 'Windows']
-LANGUAGE = [['English_United States'], 'English (Generic)']
+FOR = ['FilesChecker', (3, 1, 3), 'Windows']
+LANGUAGE = [['English_United States'], 'English (Generic)', 'en_gb']
 def s1():
     return 'FilesChecker'
 def s2():
     return 'Start Chec&k'
 def s3():
-    return 'Add &File…'
+    return 'Add &File...'
 def s4():
-    return 'Add C&hecksum…'
+    return 'Add C&hecksum...'
 def s5():
-    return '&Open Task List…'
+    return '&Open Task List...'
 def s6():
-    return '&Save Task List…'
+    return '&Save Task List...'
 def s7():
-    return '&Export Check Result…'
+    return '&Export Check Result...'
 def s8():
     return '&Clear List'
 def s9():
-    return '&Setting…'
+    return '&Setting...'
 def s10():
     return 'E&xit'
 def s11():
@@ -30,9 +30,9 @@ def s12():
 def s13():
     return '&Help'
 def s14():
-    return 'Add &File…'
+    return 'Add &File...'
 def s15():
-    return 'Add C&hecksum…'
+    return 'Add C&hecksum...'
 def s16():
     return 'Start Chec&k'
 def s17():
@@ -60,7 +60,7 @@ def s27():
 def s28():
     return 'Reboot'
 def s29():
-    return 'Custom…'
+    return 'Custom...'
 def s30():
     return 'Automatically Save Check Result'
 def s31():
@@ -94,8 +94,8 @@ def s43():
     pass
 def s44():
     return 'About'
-def s45():
-    return 'FilesChecker v' + '.'.join(map(str, FOR[1]))
+def s45(ver):
+    return 'FilesChecker v' + '.'.join(map(str, ver))
 def s46():
     return 'The language pack is not installed.'
 def s47(pyver, wxver):
@@ -169,9 +169,9 @@ def s80():
 def s81():
     return 'Error'
 def s82():
-    return 'Calculating Checksum…'
+    return 'Calculating Checksum...'
 def s83():
-    return 'Checking…'
+    return 'Checking...'
 def s84():
     return 'Exporting Check Result: '
 def s85():
@@ -237,24 +237,24 @@ def s114():
 def s115():
     return 'Are you sure you want to cancel?'
 def s116():
-    return 'Software &Update…'
+    return 'Software &Update...'
 def s117():
     return 'Software Update'
-def s118():
-    return 'Current Version: ' + '.'.join(map(str, FOR[1]))
+def s118(ver):
+    return 'Current Version: ' + '.'.join(map(str, ver))
 def s119(version):
     if version:
         return 'Lastest Version: ' + '.'.join(map(str, version))
     else:
         return 'Lastest Version: '
 def s120():
-    return 'Checking for updates…'
+    return 'Checking for updates...'
 def s121():
     return 'Download progress: '
 def s122():
     return '&Check'
 def s123():
-    return 'Connecting…'
+    return 'Connecting...'
 def s124():
     return '&Update'
 def s125():
@@ -266,15 +266,15 @@ def s127():
 def s128():
     return 'remaining'
 def s129():
-    return 'Work &Directory…'
+    return 'Work &Directory...'
 def s130():
     return ['Mode 1', 'Mode 2']
 def s131():
-    return '&Add Item…'
+    return '&Add Item...'
 def s132():
     return 'Add a item.'
 def s133():
-    return '&Add Item…'
+    return '&Add Item...'
 def s134():
     return 'Expected Checksum'
 def s135():
@@ -300,7 +300,7 @@ def s144():
 def s145():
     return 'Paste or load task list from file.'
 def s146():
-    return 'Load &File…'
+    return 'Load &File...'
 def s147():
     return 'All Supported Files (*.md5; *.sha; *.sha1; *.sha256; *.txt)|*.md5; *.sha; *.sha1; *.sha256; *.txt|Text Document (*.txt)|*.txt|All files (*.*)|*.*'
 def s148():
@@ -309,3 +309,7 @@ def s149():
     return 'Default check mode: '
 def s150():
     return 'Another instance is running. '
+def s151():
+    return 'Verifying: '
+def s152():
+    return 'Update file verification error, please check network connection.'
