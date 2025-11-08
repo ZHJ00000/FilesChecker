@@ -2139,11 +2139,11 @@ class MyDialog7(wx.Dialog):
 
     def __init__(self, parent):
         wx.Dialog.__init__(self, parent, id=wx.ID_ANY, title=language.s117(), pos=wx.DefaultPosition,
-                           size=wx.Size(400, 300), style=wx.DEFAULT_DIALOG_STYLE)
+                           size=wx.Size(600, 450), style=wx.DEFAULT_DIALOG_STYLE)
 
-        self.SetSize(wx.Size(int('%.0f' % (400 * self.GetDPI()[0] / 96)),
+        self.SetSize(wx.Size(int('%.0f' % (600 * self.GetDPI()[0] / 96)),
                              int('%.0f' % (
-                                     300 * self.GetDPI()[0] / 96))))
+                                     450 * self.GetDPI()[0] / 96))))
         self.retry = 0
         self.current_version = {'link': {}}
         self.SetSizeHints(wx.DefaultSize, wx.DefaultSize)
@@ -2351,8 +2351,15 @@ class MyDialog7(wx.Dialog):
                                     if osver >= scope[0] and osver < scope[1]:
                                         return i
                             elif i[0] == '(' and i[-1] == ')':
-                                if osver > scope[0] and osver < scope[1]:
-                                    return i
+                                if scope[0] == ('-',):
+                                    if osver < scope[1]:
+                                        return i
+                                elif scope[1] == ('+',):
+                                    if osver > scope[0]:
+                                        return i
+                                else:
+                                    if osver > scope[0] and osver < scope[1]:
+                                        return i
                             elif i[0] == '[' and i[-1] == ']':
                                 if osver >= scope[0] and osver <= scope[1]:
                                     return i
