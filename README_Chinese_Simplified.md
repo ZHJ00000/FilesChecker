@@ -28,9 +28,6 @@
     <a href="https://github.com/ZHJ00000/FilesChecker/releases/latest" style="text-decoration:none">
        <img alt="GitHub release (latest by date)" src="https://img.shields.io/github/v/release/ZHJ00000/FilesChecker">
     </a>
-    <a href="https://gitee.com/zhj00/FilesChecker/stargazers" style="text-decoration:none" >
-        <img alt="Gitee Repo stars" src="https://gitee.com/zhj00/FilesChecker/badge/star.svg?theme=dark">
-    </a>
     <a href="https://github.com/ZHJ00000/FilesChecker/releases/latest" style="text-decoration:none">
        <img alt="GitHub Release Date" src="https://img.shields.io/github/release-date/ZHJ00000/FilesChecker">
     </a>
