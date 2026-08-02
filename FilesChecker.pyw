@@ -1,43 +1,194 @@
-# coding=utf-8
-# Copyright ©2025 ZHJ.
-
-import wx, wx.xrc, wx.adv, wx.richtext, wx.html  # pip install wxPython
-import sys
+import wx, wx.xrc, wx.richtext, wx.html  #pip install wxPython
+import platform
 import os
-import glob
-import hashlib
-import threading
+import sys
 import time
 import datetime
-import pyperclip  # pip install pyperclip
-from importlib import reload
-import locale
-import zlib
-import platform
-import ctypes
-import markdown  # pip install Markdown
-import subprocess
-import json
 import shutil
-sysver = []
-for i in platform.version().split('.'):
-    sysver.append(int(i))
-# Use DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 in Windows 10 1703 and above, Otherwise,
-# use DPI_AWARENESS_CONTEXT_SYSTEM_AWARE
-if tuple(sysver) >= (10, 0, 15063):
-    ctypes.windll.user32.SetProcessDpiAwarenessContext(ctypes.c_void_p(-4))
-else:
-    ctypes.windll.user32.SetProcessDPIAware()
+import json
+import ctypes
+import locale
+import importlib.util
+import glob
+import pyperclip  # pip install pyperclip
+import markdown  # pip install markdown
+import threading
+import subprocess
+import hashlib
+import pyzipper  # pip install pyzipper
+import base64
+import zlib
+from cryptography.hazmat.primitives import hashes, serialization  #pip install cryptography
+from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.backends import default_backend
+
+import UI
+
+locale1 = None
+if platform.system() == 'Darwin':
+    loc = 'C'
+    try:
+        loc = subprocess.check_output(
+            ['defaults', 'read', '-g', 'AppleLocale'],
+            text=True
+        ).strip()
+        os.environ['LANG'] = f"{loc.partition('@')[0]}.UTF-8"
+        os.environ['LC_ALL'] = f"{loc.partition('@')[0]}.UTF-8"
+    except Exception:
+        os.environ['LANG'] = 'C.UTF-8'
+        os.environ['LC_ALL'] = 'C.UTF-8'
+    try:
+        locale.setlocale(locale.LC_ALL, '')
+    except locale.Error:
+        locale1 = loc.partition('@')[0]
 locale = locale.getlocale()[0]
+if locale1:
+    locale = locale1
 
+Version = (4, 0)
+Build = '[__BUILD__]'  #Will be replaced in Build-Windows.py and Build-macOS.py.
+if Build == '[__BU' + 'ILD__]':  #DO NOT edit this line!
+    Build = datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%d%H%M%S')
+arch = None
+if platform.system() == 'Windows':
+    arch = os.environ.get('PROCESSOR_ARCHITECTURE', '')
+else:  #Darwin and Linux
+    arch = platform.machine()
 
-ischeck = False
-command = ''
-export = ''
-isexport = False
-#os.chdir(os.path.dirname(sys.argv[0]))
-version = (3, 1, 3)
-with open(os.path.join(os.path.dirname(sys.argv[0]), "Encodings.txt"), 'r', encoding='utf-8') as f:
+class LangProxy:
+    def __init__(self, Langmodule, Englishmodule):
+        self.Langmodule = Langmodule
+        self.Englishmodule = Englishmodule
+
+    def ChangeLang(self, NewLangmodule):
+        self.Langmodule = NewLangmodule
+    def __getattr__(self, name):
+        if hasattr(self.Langmodule, name):
+            return getattr(self.Langmodule, name)
+        elif hasattr(self.Englishmodule, name):
+            return getattr(self.Englishmodule, name)
+
+Lang_PublicKey = '''
+-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAmK7pJ4z9d8Q4LSmGuyb/
+d3nqZTdoQVDL+ujImA57k8Ps007nAUw+l796eq/WtVy8aUTSkjFssn6hS7tezh/9
+wjMW9VTWrOXZn1Xjin2yB8fdIaqmAnTc3EIAnTI4AQlZ5BQETGAepuECO+C3/tfh
+9OQsidiXSlNjvbdm+gysNj+ZBZvUxtA/f/AEu7Zz/6TjlkxbBXHqo/6exoeGFdeG
+lFw/J2Y0F1lkbaRkc46esXXSeA1fMjiGUNXVSnJEIFogiC4od2sRNQSA80V6eFoQ
+ArMBJP0/ehTu7nGbAuw7DRlzKv/DRj2NsMbKu/IeOqiI94uzcigytLCPZFll/9a1
+9QIDAQAB
+-----END PUBLIC KEY-----
+'''
+def Verify_Signature(doc_path: str, signature_path: str, public_key_str=Lang_PublicKey) -> bool:
+    with open(doc_path, "rb") as f:
+        data = f.read()
+    if os.path.isfile(signature_path):
+        with open(signature_path, "r", encoding="utf-8") as f:
+            b64_sig = f.read().strip()
+    else:
+        return False
+    try:
+        signature = base64.b64decode(b64_sig)
+    except Exception:
+        return False
+
+    public_key = serialization.load_pem_public_key(
+        public_key_str.encode(),
+        backend=default_backend()
+    )
+    try:
+        public_key.verify(
+            signature,
+            data,
+            padding.PSS(
+                mgf=padding.MGF1(hashes.SHA256()),
+                salt_length=padding.PSS.MAX_LENGTH
+            ),
+            hashes.SHA256()
+        )
+        return True
+    except Exception:
+        return False
+
+def GetOSVersion():
+    if platform.system() == 'Windows':
+        ver = platform.version()
+    elif platform.system() == 'Darwin':
+        ver =  platform.mac_ver()[0]
+    else:
+        raise NotImplementedError('Unsupported OS: ' + platform.system())
+    sysver = []
+    for i in ver.split('.'):
+        sysver.append(int(i))
+    return sysver
+if platform.system() == 'Windows':
+    # Use DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 in Windows 10 1703 and above, Otherwise,
+    # use DPI_AWARENESS_CONTEXT_SYSTEM_AWARE
+    if tuple(GetOSVersion()) >= (10, 0, 15063):
+        ctypes.windll.user32.SetProcessDpiAwarenessContext(ctypes.c_void_p(-4))
+    else:
+        ctypes.windll.user32.SetProcessDPIAware()
+
+def LoadSetting():
+    with open(os.path.join(GetUserDataPath(), 'FilesChecker4', 'Setting.json'), 'r',
+              encoding='utf-8') as settingfile:
+        return json.loads(settingfile.read())
+def SaveSetting(setting):
+    with open(os.path.join(GetUserDataPath(), 'FilesChecker4', 'Setting.json'), 'w',
+              encoding='utf-8') as settingfile:
+        settingfile.write(json.dumps(setting))
+        return None
+def GetUserDataPath():
+    if platform.system() == 'Windows':
+        return os.path.join(os.environ["APPDATA"], 'ZHJ')
+    elif platform.system() == 'Darwin':
+        return os.path.join(os.environ["HOME"], "Library", "Application Support", "ZHJ")
+    elif platform.system() == 'Linux':
+        return os.path.join(os.environ["HOME"], ".local", "share", "ZHJ")
+    else:
+        raise NotImplementedError('Unsupported OS: ' + platform.system())
+def GetProgPath():
+    if os.path.basename(sys.argv[0]).split('.')[-1].lower().startswith('py'):
+        return os.path.dirname(sys.argv[0])
+    if platform.system() != 'Darwin':
+        return os.path.dirname(sys.argv[0])
+    else:
+        return os.path.join(os.path.split(os.path.dirname(sys.argv[0]))[0], 'Resources')
+def GetScaledSize(DPI, size: wx.Size):
+    x = size.GetWidth()
+    y = size.GetHeight()
+    if platform.system() == 'Windows':
+        if x != -1:
+            x = int('%.0f' % (x * DPI[0] / 96))
+        if y != -1:
+            y = int('%.0f' % (y * DPI[0] / 96))
+    return wx.Size(x, y)
+def GetScaledWidth(DPI, x: int):
+    if platform.system() == 'Windows':
+        if x != -1:
+            x = int('%.0f' % (x * DPI[0] / 96))
+    return x
+def Unzip(zip_file, password, output_path):
+    with pyzipper.AESZipFile(zip_file) as zf:
+        zf.extractall(output_path, pwd=password.encode())
+def timeformat(seconds):
+    hours = 0
+    minutes = 0
+    if seconds >= 60:
+        minutes = seconds // 60
+        seconds = seconds % 60
+    if minutes >= 60:
+        hours = minutes // 60
+        minutes = minutes % 60
+    if hours < 10:
+        hours = '0' + str(hours)
+    if minutes < 10:
+        minutes = '0' + str(minutes)
+    if seconds < 10:
+        seconds = '0' + str(seconds)
+    return str(hours) + ':' + str(minutes) + ':' + str(seconds)
+
+with open(os.path.join(GetProgPath(), "Encodings.txt"), 'r', encoding='utf-8') as f:
     encodinglist = f.readlines()
 encodingslist = [[], []]
 for i in range(len(encodinglist)):
@@ -45,8 +196,8 @@ for i in range(len(encodinglist)):
     encodingslist[0].append(encodinglist[i][0])
     encodingslist[1].append(encodinglist[i][1])
 del encodinglist
-def find_encoding_key(coding, encodingslist=encodingslist):
-    coding = coding.upper().replace('_', '-')
+def find_encoding_key(coding: str, encodingslist=encodingslist):
+    coding = coding.upper().replace('-', '_')
     if coding in encodingslist[1]:
         return coding
     else:
@@ -55,2272 +206,1928 @@ def find_encoding_key(coding, encodingslist=encodingslist):
         else:
             return None
 
-def intask(file, encoding):
-    try:
-        with open(file, 'r', encoding=encoding, errors='replace') as file:
-            l = file.readlines()
-    except Exception as err:
-        tf = False
-        toastone = wx.MessageDialog(None, language.s56() + type(err).__name__ + ': ' + str(err), language.s81(),
-                                    wx.OK | wx.OK_DEFAULT | wx.ICON_ERROR)
-        toastone.SetOKLabel(language.s57())
-        if toastone.ShowModal() == wx.ID_OK:  # 如果点击了提示框的确定按钮
-            toastone.Destroy()
-    else:
-        for i in range(0, len(l)):
-            l[i] = l[i].rstrip()
-        for i in range(0, len(l)):
-            a = l[i].split('##')
-            b = ''
-            for j in range(len(a)):
-                if '#' in a[j]:
-                    b = b + a[j].partition('#')[0]
-                    break
-                else:
-                    if j != len(a) - 1:
-                        b = b + a[j] + '#'
-                    else:
-                        b = b + a[j]
-            l[i] = b
-            del a
-            del b
-        while '' in l:
-            l.remove('')
-        tf = False
-        if len(l) == 0:
-            toastone = wx.MessageDialog(None, language.s58(), language.s81(),
-                                        wx.OK | wx.OK_DEFAULT | wx.ICON_ERROR)
-            toastone.SetOKLabel(language.s57())
-            if toastone.ShowModal() == wx.ID_OK:  # 如果点击了提示框的确定按钮
-                toastone.Destroy()
-        else:
-            for i in range(0, len(l)):
-                l[i] = l[i].rstrip()
-            l[0] = l[0].lower()
-            if l[0] == 'md5':
-                frame.m_choice1.SetSelection(0)
-                tf = True
-            elif l[0] == 'sha1' or l[0] == 'sha-1':
-                frame.m_choice1.SetSelection(1)
-                tf = True
-            elif l[0] == 'sha224' or l[0] == 'sha-224':
-                frame.m_choice1.SetSelection(2)
-                tf = True
-            elif l[0] == 'sha256' or l[0] == 'sha-256':
-                frame.m_choice1.SetSelection(3)
-                tf = True
-            elif l[0] == 'sha384' or l[0] == 'sha-384':
-                frame.m_choice1.SetSelection(4)
-                tf = True
-            elif l[0] == 'sha512' or l[0] == 'sha-512':
-                frame.m_choice1.SetSelection(5)
-                tf = True
-            elif l[0] == 'sha3-224':
-                frame.m_choice1.SetSelection(6)
-                tf = True
-            elif l[0] == 'sha3-256':
-                frame.m_choice1.SetSelection(7)
-                tf = True
-            elif l[0] == 'sha3-384':
-                frame.m_choice1.SetSelection(8)
-                tf = True
-            elif l[0] == 'sha3-512':
-                frame.m_choice1.SetSelection(9)
-                tf = True
-            elif l[0] == 'blake2b':
-                frame.m_choice1.SetSelection(10)
-                tf = True
-            elif l[0] == 'blake2s':
-                frame.m_choice1.SetSelection(11)
-                tf = True
-            elif l[0] == 'crc32' or l[0] == 'crc-32':
-                frame.m_choice1.SetSelection(12)
-                tf = True
-            else:
-                toastone = wx.MessageDialog(None, language.s58(), language.s81(),
-                                            wx.OK | wx.OK_DEFAULT | wx.ICON_ERROR)
-                toastone.SetOKLabel(language.s57())
-                if toastone.ShowModal() == wx.ID_OK:  # 如果点击了提示框的确定按钮
-                    toastone.Destroy()
-                tf = False
-    if tf:
-        ll = []
-        for i in range(len(l)):
-            ll.append(l[i].lower())
-        try:
-            if ll[1] != '<file>' and ll[1] != '<hash>':
-                tf = False
-                toastone = wx.MessageDialog(None, language.s59(), language.s81(),
-                                            wx.OK | wx.OK_DEFAULT | wx.ICON_ERROR)
-                toastone.SetOKLabel(language.s57())
-                if toastone.ShowModal() == wx.ID_OK:  # 如果点击了提示框的确定按钮
-                    toastone.Destroy()
-        except IndexError:
-            toastone = wx.MessageDialog(None, language.s61(), language.s62(),
-                                        wx.OK | wx.OK_DEFAULT | wx.ICON_WARNING)
-            toastone.SetOKLabel(language.s57())
-            if toastone.ShowModal() == wx.ID_OK:  # 如果点击了提示框的确定按钮
-                toastone.Destroy()
-            tf = False
-    if tf:
-        foha = ''
-        count = frame.m_listCtrl2.GetItemCount()
-        for i in range(1, len(l)):
-            if ll[i] == '<file>':
-                foha = 1
-            elif ll[i] == '<hash>':
-                foha = 2
-            else:
-                if foha == 1:
-                    if l[i][0] == '"' and l[i][len(l[i]) - 1] == '"':
-                        data1 = list(l[i])
-                        del data1[0]
-                        del data1[len(data1) - 1]
-                        l[i] = ''
-                        for ii in range(len(data1)):
-                            l[i] = l[i] + data1[ii]
-                    fs = glob.glob(l[i])
-                    if len(fs) == 0:
-                        index = frame.m_listCtrl2.InsertItem(frame.m_listCtrl2.GetItemCount(),
-                                                             str(frame.m_listCtrl2.GetItemCount() + 1))
-                        frame.m_listCtrl2.SetItem(index, 1, '')
-                        frame.m_listCtrl2.SetItem(index, 2, l[i])
-                        frame.m_listCtrl2.SetItem(index, 3, '')
-                        information.append('/')
-                    else:
-                        for i in range(0, len(fs)):
-                            if os.path.isfile(fs[i]) == False:
-                                fs[i] = ''
-                        while '' in fs:
-                            fs.remove('')
-                        for fah in fs:
-                            index = frame.m_listCtrl2.InsertItem(frame.m_listCtrl2.GetItemCount(),
-                                                                 str(frame.m_listCtrl2.GetItemCount() + 1))
-                            frame.m_listCtrl2.SetItem(index, 1, '')
-                            frame.m_listCtrl2.SetItem(index, 2, fah)
-                            frame.m_listCtrl2.SetItem(index, 3, '')
-                            information.append('/')
-                elif foha == 2:
-                    l[i] = l[i].lower()
-                    index = frame.m_listCtrl2.InsertItem(frame.m_listCtrl2.GetItemCount(),
-                                                         str(frame.m_listCtrl2.GetItemCount() + 1))
-                    frame.m_listCtrl2.SetItem(index, 1, '')
-                    frame.m_listCtrl2.SetItem(index, 2, '')
-                    frame.m_listCtrl2.SetItem(index, 3, l[i])
-                    information.append('/')
-        if count == frame.m_listCtrl2.GetItemCount():
-            toastone = wx.MessageDialog(None, language.s61(), language.s62(),
-                                        wx.OK | wx.OK_DEFAULT | wx.ICON_WARNING)
-            toastone.SetOKLabel(language.s57())
-            if toastone.ShowModal() == wx.ID_OK:  # 如果点击了提示框的确定按钮
-                toastone.Destroy()
-        frame.sort(None)
+encodingchoices = ['ANSI', 'ASCII', 'BIG5', 'BIG5HKSCS', 'CP037', 'CP273', 'CP424', 'CP437', 'CP500',
+                   'CP720', 'CP737', 'CP775', 'CP850', 'CP852', 'CP855', 'CP856', 'CP857', 'CP858',
+                   'CP860', 'CP861', 'CP862', 'CP863', 'CP864', 'CP865', 'CP866', 'CP869', 'CP874',
+                   'CP875', 'CP932', 'CP949', 'CP950', 'CP1006', 'CP1026', 'CP1125', 'CP1140', 'CP1250',
+                   'CP1251', 'CP1252', 'CP1253', 'CP1254', 'CP1255', 'CP1256', 'CP1257', 'CP1258',
+                   'EUC_JP', 'EUC_JIS_2004', 'EUC_JISX0213','EUC_KR', 'GB2312', 'GBK', 'GB18030', 'HZ',
+                   'ISO2022_JP', 'ISO2022_JP_1', 'ISO2022_JP_2','ISO2022_JP_2004', 'ISO2022_JP_3',
+                   'ISO2022_JP_EXT', 'ISO2022_KR', 'LATIN_1', 'ISO8859_2','ISO8859_3', 'ISO8859_4',
+                   'ISO8859_5', 'ISO8859_6', 'ISO8859_7', 'ISO8859_8', 'ISO8859_9','ISO8859_10',
+                   'ISO8859_11', 'ISO8859_13', 'ISO8859_14', 'ISO8859_15', 'ISO8859_16','JOHAB',
+                   'KOI8_R', 'KOI8_T', 'KOI8_U', 'KZ1048', 'MAC_CYRILLIC', 'MAC_GREEK','MAC_ICELAND',
+                   'MAC_LATIN2', 'MAC_ROMAN', 'MAC_TURKISH', 'OEM', 'PTCP154', 'SHIFT_JIS',
+                   'SHIFT_JIS_2004', 'SHIFT_JISX0213', 'UTF_32', 'UTF_32_BE', 'UTF_32_LE', 'UTF_16',
+                   'UTF_16_BE', 'UTF_16_LE', 'UTF_7', 'UTF_8', 'UTF_8_SIG']
+if platform.system() != 'Windows':
+    encodingchoices.remove(encodingchoices[0])
 
 class OperationCancelledError(Exception):
     pass
 
 class FileDrop(wx.FileDropTarget):
-    def __init__(self):
-        wx.FileDropTarget.__init__(self)
-
-    def OnDropFiles(self, x, y, filePath):
-        global information
-        for i in filePath:
-            if os.path.isdir(i) == False:
-                index = frame.m_listCtrl2.InsertItem(frame.m_listCtrl2.GetItemCount(),
-                                                     str(frame.m_listCtrl2.GetItemCount() + 1))
-                frame.m_listCtrl2.SetItem(index, 1, '')
-                frame.m_listCtrl2.SetItem(index, 2, i)
-                frame.m_listCtrl2.SetItem(index, 3, '')
-                information.append('/')
-        frame.sort(None)
-        return False
-
-class FileDrop2(wx.FileDropTarget):
-    def __init__(self):
-        wx.FileDropTarget.__init__(self)
-
-    def OnDropFiles(self, x, y, filePath):
-        if os.path.isfile(filePath[0]):
-            frame.additem.m_filePicker2.SetPath(filePath[0])
-        return False
-
-
-class main(wx.Frame):
-
     def __init__(self, parent):
-        global file, information, update
-        wx.Frame.__init__(self, parent, id=wx.ID_ANY, title=language.s1(), pos=wx.DefaultPosition,
-                          size=wx.Size(1000, 600),
-                          style=wx.DEFAULT_FRAME_STYLE | wx.MAXIMIZE_BOX | wx.TAB_TRAVERSAL)
-        self.SetSize(wx.Size(int('%.0f' % (1000 * self.GetDPI()[0] / 96)),
-                                       int('%.0f' % (600 * self.GetDPI()[0] / 96))))
-        self.SetClientSize(wx.Size(int('%.0f' % (1000 * self.GetDPI()[0] / 96)),
-                                       int('%.0f' % (600 * self.GetDPI()[0] / 96))))
+        wx.FileDropTarget.__init__(self)
+        self.parent = parent
 
-        self.SetSizeHints(wx.Size(int('%.0f' % (1000 * self.GetDPI()[0] / 96)),
-                                       int('%.0f' % (600 * self.GetDPI()[0] / 96))),
-                          wx.Size(-1, -1))
-        self.SetForegroundColour(wx.SystemSettings.GetColour(wx.SYS_COLOUR_WINDOW))
-        self.SetBackgroundColour(wx.SystemSettings.GetColour(wx.SYS_COLOUR_MENU))
+    def OnDropFiles(self, x, y, filePath):
+        if self.parent.m_choice1.GetSelection() == 0:
+            for i in filePath:
+                if os.path.isdir(i) == False:
+                    index = self.parent.m_listCtrl1.InsertItem(self.parent.m_listCtrl1.GetItemCount(),
+                                                               str(self.parent.m_listCtrl1.GetItemCount() + 1))
+                    self.parent.m_listCtrl1.SetItem(index, 1, '')
+                    self.parent.m_listCtrl1.SetItem(index, 2, i)
+                    self.parent.m_listCtrl1.SetItem(index, 3, '')
+                    self.parent.informations.append(self.parent.information_default)
+            self.parent.sort(None)
+        elif self.parent.m_choice1.GetSelection() == 1:
+            wx.CallAfter(self.parent.add_file, event=None, file=filePath[0])
+        return False
 
-        self.m_menubar2 = wx.MenuBar(0)
-        self.m_menu3 = wx.Menu()
-        self.m_menuItem1 = wx.MenuItem(self.m_menu3, wx.ID_ANY, language.s2() + "\tCtrl+Enter", language.s97(),
-                                       wx.ITEM_NORMAL)
-        self.m_menu3.Append(self.m_menuItem1)
-
-        self.m_menu3.AppendSeparator()
-
-        self.m_menuItem2 = wx.MenuItem(self.m_menu3, wx.ID_ANY, language.s3() + "\tCtrl+F", language.s98(),
-                                       wx.ITEM_NORMAL)
-        self.m_menu3.Append(self.m_menuItem2)
-
-        self.m_menuItem8 = wx.MenuItem(self.m_menu3, wx.ID_ANY, language.s4() + "\tCtrl+H", language.s99(),
-                                       wx.ITEM_NORMAL)
-        self.m_menu3.Append(self.m_menuItem8)
-
-        self.m_menu3.AppendSeparator()
-
-        self.m_menuItem4 = wx.MenuItem(self.m_menu3, wx.ID_ANY, language.s5() + "\tCtrl+O", language.s100(),
-                                       wx.ITEM_NORMAL)
-        self.m_menu3.Append(self.m_menuItem4)
-
-        self.m_menuItem5 = wx.MenuItem(self.m_menu3, wx.ID_ANY, language.s6() + "\tCtrl+S", language.s101(),
-                                       wx.ITEM_NORMAL)
-        self.m_menu3.Append(self.m_menuItem5)
-
-        self.m_menu3.AppendSeparator()
-
-        self.m_menuItem9 = wx.MenuItem(self.m_menu3, wx.ID_ANY, language.s7() + "\tCtrl+E", language.s102(),
-                                       wx.ITEM_NORMAL)
-        self.m_menu3.Append(self.m_menuItem9)
-
-        self.m_menu3.AppendSeparator()
-
-        self.m_menuItem3 = wx.MenuItem(self.m_menu3, wx.ID_ANY, language.s8(), wx.EmptyString,
-                                       wx.ITEM_NORMAL)
-        self.m_menu3.Append(self.m_menuItem3)
-
-        self.m_menu3.AppendSeparator()
-
-        self.m_menuItem172 = wx.MenuItem(self.m_menu3, wx.ID_ANY, language.s129() + "\tAlt+D", wx.EmptyString, wx.ITEM_NORMAL)
-        self.m_menu3.Append(self.m_menuItem172)
-
-        self.m_menu3.AppendSeparator()
-
-        self.m_menuItem10 = wx.MenuItem(self.m_menu3, wx.ID_ANY, language.s9() + "\tCtrl+Alt+S", language.s103(),
-                                        wx.ITEM_NORMAL)
-        self.m_menu3.Append(self.m_menuItem10)
-
-        self.m_menu3.AppendSeparator()
-
-        self.m_menuItem6 = wx.MenuItem(self.m_menu3, wx.ID_ANY, language.s10() + "\tAlt+F4", language.s104(),
-                                       wx.ITEM_NORMAL)
-        self.m_menu3.Append(self.m_menuItem6)
-
-        self.m_menubar2.Append(self.m_menu3, language.s11())
-
-        self.m_menu5 = wx.Menu()
-        self.m_menuItem171 = wx.MenuItem(self.m_menu5, wx.ID_ANY, language.s116(), wx.EmptyString, wx.ITEM_NORMAL)
-        self.m_menu5.Append(self.m_menuItem171)
-        self.m_menuItem7 = wx.MenuItem(self.m_menu5, wx.ID_ANY, language.s12(), language.s105(), wx.ITEM_NORMAL)
-        self.m_menu5.Append(self.m_menuItem7)
-
-        self.m_menubar2.Append(self.m_menu5, language.s13())
-
-        self.SetMenuBar(self.m_menubar2)
-
-        self.m_toolBar1 = self.CreateToolBar(wx.TB_HORIZONTAL, wx.ID_ANY)
-        m_choice4Choices = language.s130()
-        self.m_choice4 = wx.Choice(self.m_toolBar1, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, m_choice4Choices, 0)
-        self.m_choice4.SetSelection(setting['DefaultCheckMode'])
-        self.mode = self.m_choice4.GetSelection()
-        self.m_toolBar1.AddControl(self.m_choice4)
-        m_choice1Choices = ["MD5", "SHA-1", "SHA-224", "SHA-256", "SHA-384", "SHA-512", "SHA3-224", "SHA3-256",
-                            "SHA3-384", "SHA3-512", "BLAKE2b", "BLAKE2s", "CRC-32"]
-        self.m_choice1 = wx.Choice(self.m_toolBar1, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, m_choice1Choices, 0)
-        self.m_choice1.SetSelection(0)
-        self.m_toolBar1.AddControl(self.m_choice1)
-        self.m_button1 = wx.Button(self.m_toolBar1, wx.ID_ANY, language.s14(), wx.DefaultPosition, wx.DefaultSize, 0)
-        self.m_toolBar1.AddControl(self.m_button1)
-        self.m_button6 = wx.Button(self.m_toolBar1, wx.ID_ANY, language.s15(), wx.DefaultPosition, wx.DefaultSize,
-                                   0)
-        self.m_toolBar1.AddControl(self.m_button6)
-        self.m_button3 = wx.Button(self.m_toolBar1, wx.ID_ANY, language.s16(), wx.DefaultPosition, wx.DefaultSize, 0)
-        self.m_toolBar1.AddControl(self.m_button3)
-        self.m_toolBar1.Realize()
-
-        if self.m_choice4.GetSelection() == 1:
-            self.m_menuItem2.SetItemLabel(language.s131() + '\tCtrl+F')
-            self.m_menu3.Remove(self.m_menuItem8)
-            self.m_menuItem2.SetHelp(language.s132())
-            self.m_button1.SetLabel(language.s133())
-            self.m_button6.Show(False)
-            self.m_toolBar1.RemoveTool(self.m_button6.GetId())
-            self.m_toolBar1.Realize()
-
-        bSizer2 = wx.BoxSizer(wx.VERTICAL)
-
-        self.m_listCtrl2 = wx.ListCtrl(self, wx.ID_ANY, wx.DefaultPosition,
-                                       wx.Size(int('%.0f' % (1000 * self.GetDPI()[0] / 96)),
-                                               int('%.0f' % (485 * self.GetDPI()[0] / 96))),
-                                       wx.LC_HRULES | wx.LC_REPORT)
-        self.m_listCtrl2.SetMinSize(
-            wx.Size(int('%.0f' % (1000 * self.GetDPI()[0] / 96)),
-                                               int('%.0f' % (485 * self.GetDPI()[0] / 96))))
-
-        bSizer2.Add(self.m_listCtrl2, 1, wx.ALL | wx.EXPAND, 5)
-        if self.m_choice4.GetSelection() == 0:
-            self.m_listCtrl2.InsertColumn(0, language.s17())
-            self.m_listCtrl2.InsertColumn(1, language.s18())
-            self.m_listCtrl2.InsertColumn(2, language.s19())
-            self.m_listCtrl2.InsertColumn(3, language.s20())
-            self.m_listCtrl2.SetColumnWidth(0, int('%.0f' % (50 * self.GetDPI()[0] / 96)))  # 设置每一列的宽度
-            self.m_listCtrl2.SetColumnWidth(1, int('%.0f' % (50 * self.GetDPI()[0] / 96)))
-            self.m_listCtrl2.SetColumnWidth(2, int('%.0f' % (425 * self.GetDPI()[0] / 96)))
-            self.m_listCtrl2.SetColumnWidth(3, int('%.0f' % (445 * self.GetDPI()[0] / 96)))
-            fileDrop = FileDrop()
-            self.m_listCtrl2.SetDropTarget(fileDrop)
-        elif self.m_choice4.GetSelection() == 1:
-            self.m_listCtrl2.InsertColumn(0, language.s17())
-            self.m_listCtrl2.InsertColumn(1, language.s19())
-            self.m_listCtrl2.InsertColumn(2, language.s134())
-            self.m_listCtrl2.InsertColumn(3, language.s135())
-            self.m_listCtrl2.SetColumnWidth(0, int('%.0f' % (50 * self.GetDPI()[0] / 96)))  # 设置每一列的宽度
-            self.m_listCtrl2.SetColumnWidth(1, int('%.0f' % (425 * self.GetDPI()[0] / 96)))
-            self.m_listCtrl2.SetColumnWidth(2, int('%.0f' % (425 * self.GetDPI()[0] / 96)))
-            self.m_listCtrl2.SetColumnWidth(3, int('%.0f' % (75 * self.GetDPI()[0] / 96)))
-
-        information = []
-
-        self.SetSizer(bSizer2)
-        self.Layout()
-        self.m_statusBar3 = self.CreateStatusBar(2, wx.STB_SIZEGRIP, wx.ID_ANY)
-        self.SetStatusText('')
+class Main(UI.Main):
+    def __init__(self, parent):
+        UI.Main.__init__(self, parent)
+        self.SetSize(GetScaledSize(self.GetDPI(), self.GetSize()))
+        if platform.system() == 'Windows':
+            self.SetBackgroundColour(wx.SystemSettings.GetColour(wx.SYS_COLOUR_MENU))
+        self.Centre()
+        fileDrop = FileDrop(self)
+        self.m_listCtrl1.SetDropTarget(fileDrop)
+        self.informations = []
+        self.information_default = {'Time': None, 'Error': None, 'ActualChecksum': None}
         self.SetStatusText(os.getcwd(), 1)
+        self.m_choice1.SetSelection(setting['DefaultCheckMode'])
+        self.mode = self.m_choice1.GetSelection()
+        if platform.system() != 'Darwin':
+            self.m_menu1.InsertSeparator(15)
+        self.aftercmd = ''
+        self.aftersave = ''
+        self.ischeck = False
+        self.change_lang_later_warn = None
+        if platform.system() == 'Darwin':
+            self.m_menu1.Remove(self.m_menuItem9)
+            self.m_menubar1.OSXGetAppleMenu().Insert(1, self.m_menuItem9)
+        self.change_lang()
+        self.switch_mode(None)
 
-        self.m_menu4 = wx.Menu()
-        self.m_menuItem12 = wx.MenuItem(self.m_menu4, wx.ID_ANY, language.s76(), wx.EmptyString, wx.ITEM_NORMAL)
-        self.m_menu4.Append(self.m_menuItem12)
-
-        self.m_menu4.AppendSeparator()
-
-        self.m_menuItem16 = wx.MenuItem(self.m_menu4, wx.ID_ANY, language.s77(), wx.EmptyString, wx.ITEM_NORMAL)
-        self.m_menu4.Append(self.m_menuItem16)
-
-        self.m_menuItem17 = wx.MenuItem(self.m_menu4, wx.ID_ANY, language.s78(), wx.EmptyString, wx.ITEM_NORMAL)
-        self.m_menu4.Append(self.m_menuItem17)
-
-        self.m_menu4.AppendSeparator()
-
-        self.m_menuItem13 = wx.MenuItem(self.m_menu4, wx.ID_ANY, language.s79(), wx.EmptyString, wx.ITEM_NORMAL)
-        self.m_menu4.Append(self.m_menuItem13)
-
-        self.m_menuItem14 = wx.MenuItem(self.m_menu4, wx.ID_ANY, language.s80(), wx.EmptyString, wx.ITEM_NORMAL)
-        self.m_menu4.Append(self.m_menuItem14)
-
-        self.m_menu4.AppendSeparator()
-
-        self.m_menuItem15 = wx.MenuItem(self.m_menu4, wx.ID_ANY, language.s38(), wx.EmptyString, wx.ITEM_NORMAL)
-        self.m_menu4.Append(self.m_menuItem15)
-
-        self.Centre(wx.BOTH)
-
-        # Connect Events
-        self.Bind(wx.EVT_CLOSE, self.exit)
-        self.Bind(wx.EVT_MENU, self.startcheck, id=self.m_menuItem1.GetId())
-        self.Bind(wx.EVT_MENU, self.addfile, id=self.m_menuItem2.GetId())
-        self.Bind(wx.EVT_MENU, self.addhash, id=self.m_menuItem8.GetId())
-        self.Bind(wx.EVT_MENU, self.inputtask, id=self.m_menuItem4.GetId())
-        self.Bind(wx.EVT_MENU, self.outputtask, id=self.m_menuItem5.GetId())
-        self.Bind(wx.EVT_MENU, self.outputreport, id=self.m_menuItem9.GetId())
-        self.Bind(wx.EVT_MENU, self.clear, id=self.m_menuItem3.GetId())
-        self.Bind(wx.EVT_MENU, self.setting, id=self.m_menuItem10.GetId())
-        self.Bind(wx.EVT_MENU, self.work_directory, id=self.m_menuItem172.GetId())
-        self.Bind(wx.EVT_MENU, self.exit, id=self.m_menuItem6.GetId())
-        self.Bind(wx.EVT_MENU, self.getupdate, id=self.m_menuItem171.GetId())
-        self.Bind(wx.EVT_MENU, self.about, id=self.m_menuItem7.GetId())
-        self.m_choice4.Bind(wx.EVT_CHOICE, self.switchmode)
-        self.m_button1.Bind(wx.EVT_BUTTON, self.addfile)
-        self.m_button6.Bind(wx.EVT_BUTTON, self.addhash)
-        self.m_button3.Bind(wx.EVT_BUTTON, self.startcheck)
-        self.m_listCtrl2.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.rightmenu)
-        self.m_listCtrl2.Bind(wx.EVT_LIST_COL_CLICK, self.setsort)
-        #self.m_listCtrl2.Bind(wx.EVT_LIST_INSERT_ITEM, self.sort)
-        self.Bind(wx.EVT_MENU, self.showinformation, id=self.m_menuItem12.GetId())
-        self.Bind(wx.EVT_MENU, self.editfile, id=self.m_menuItem16.GetId())
-        self.Bind(wx.EVT_MENU, self.edithash, id=self.m_menuItem17.GetId())
-        self.Bind(wx.EVT_MENU, self.copyfile, id=self.m_menuItem13.GetId())
-        self.Bind(wx.EVT_MENU, self.copyhash, id=self.m_menuItem14.GetId())
-        self.Bind(wx.EVT_MENU, self.delete, id=self.m_menuItem15.GetId())
-
-
-    def __del__(self):
-        pass
-
-    # Virtual event handlers, override them in your derived class
-    def exit(self, event):
-        global iscancel
-        if ischeck:
-            toastone = wx.MessageDialog(None, language.s65(), language.s1(),
-                                        wx.YES_NO | wx.NO_DEFAULT | wx.ICON_WARNING)
-            toastone.SetYesNoLabels(language.s63(), language.s64())
-            if toastone.ShowModal() == wx.ID_YES:  # 如果点击了提示框的确定按钮
-                toastone.Destroy()
-                iscancel = True
-                lockfile.close()
-                os.remove(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'LOCK'))
-                sys.exit(0)
+    def change_lang(self):
+        self.SetTitle(Lang.title())
+        if platform.system() == 'Darwin':
+            macoslocale = wx.Locale(Lang.macoslocale())
+            if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+                macoslocale.AddCatalogLookupPathPrefix(os.path.join(GetProgPath(), 'locale'))
+            macoslocale.AddCatalog('wxstd')
+            self.m_menubar1.OSXGetAppleMenu().SetTitle(Lang.title())
+            self.m_menubar1.OSXGetAppleMenu().FindItemByPosition(0).SetItemLabel(Lang.menuitem_about())
+            self.m_menubar1.OSXGetAppleMenu().FindItemByPosition(7).SetItemLabel(
+                Lang.menuitem_hide_macos() + '\tCtrl+H')
+            self.m_menubar1.OSXGetAppleMenu().FindItemByPosition(
+                self.m_menubar1.OSXGetAppleMenu().GetMenuItemCount() - 1).SetItemLabel(
+                Lang.menuitem_exit_macos() + '\tCtrl+Q')
+        self.m_menuItem1.SetItemLabel(Lang.menuitem_startcheck() + '\tCtrl+Enter')
+        self.m_menuItem1.SetHelp(Lang.menuitem_startcheck_help())
+        if self.m_choice1.GetSelection() == 0:
+            self.m_menuItem2.SetItemLabel(Lang.menuitem_addfile() + '\tCtrl+F')
+            self.m_menuItem2.SetHelp(Lang.menuitem_addfile_help())
+        elif self.m_choice1.GetSelection() == 1:
+            self.m_menuItem2.SetItemLabel(Lang.menuitem_additem() + '\tCtrl+F')
+            self.m_menuItem2.SetHelp(Lang.menuitem_additem_help())
+        self.m_menuItem3.SetItemLabel(Lang.menuitem_addchecksum() + '\tCtrl+H')
+        self.m_menuItem3.SetHelp(Lang.menuitem_addchecksum_help())
+        self.m_menuItem4.SetItemLabel(Lang.menuitem_opentask() + '\tCtrl+O')
+        self.m_menuItem4.SetHelp(Lang.menuitem_opentask_help())
+        self.m_menuItem5.SetItemLabel(Lang.menuitem_savetask() + '\tCtrl+S')
+        self.m_menuItem5.SetHelp(Lang.menuitem_savetask_help())
+        self.m_menuItem6.SetItemLabel(Lang.menuitem_exportresult() + '\tCtrl+E')
+        self.m_menuItem6.SetHelp(Lang.menuitem_exportresult_help())
+        self.m_menuItem7.SetItemLabel(Lang.menuitem_clear())
+        self.m_menuItem8.SetItemLabel(Lang.menuitem_workdir() + '\tAlt+D')
+        if platform.system() == 'Darwin':
+            self.m_menuItem9.SetItemLabel(Lang.menuitem_settings() + '\tCtrl+,')
         else:
-            lockfile.close()
-            os.remove(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'LOCK'))
+            self.m_menuItem9.SetItemLabel(Lang.menuitem_settings() + '\tCtrl+Alt+S')
+        self.m_menuItem9.SetHelp(Lang.menuitem_settings_help())
+        if platform.system() != 'Darwin':
+            self.m_menuItem10.SetItemLabel(Lang.menuitem_exit() + '\tAlt+F4')
+            self.m_menuItem10.SetHelp(Lang.menuitem_exit_help())
+        self.m_menubar1.SetMenuLabel(0, Lang.menu_task())
+        self.m_menuItem11.SetItemLabel(Lang.menuitem_ota())
+        self.m_menuItem12.SetItemLabel(Lang.menuitem_about())
+        self.m_menuItem12.SetHelp(Lang.menuitem_about_help())
+        self.m_menubar1.SetMenuLabel(1, Lang.menu_help())
+        self.m_choice1.SetString(0, Lang.choice_mode1())
+        self.m_choice1.SetString(1, Lang.choice_mode2())
+        self.m_choice1.SetSize(self.m_choice1.GetBestSize())
+        if self.m_choice1.GetSelection() == 0:
+            self.m_button1.SetLabel(Lang.btn_addfile())
+        elif self.m_choice1.GetSelection() == 1:
+            self.m_button1.SetLabel(Lang.btn_additem())
+        self.m_button1.SetSize(self.m_button1.GetBestSize())
+        self.m_button2.SetLabel(Lang.btn_addchecksum())
+        self.m_button2.SetSize(self.m_button2.GetBestSize())
+        # ! Add button 'Add Item' for Mode 2
+        self.m_button3.SetLabel(Lang.btn_startcheck())
+        self.m_button3.SetSize(self.m_button3.GetBestSize())
+        self.m_toolBar1.Realize()
+        self.m_listCtrl1.DeleteAllItems()
+        self.m_listCtrl1.DeleteAllColumns()
+        if self.m_choice1.GetSelection() == 0:
+            self.m_listCtrl1.InsertColumn(0, Lang.list_no())
+            self.m_listCtrl1.InsertColumn(1, Lang.list_groupno())
+            self.m_listCtrl1.InsertColumn(2, Lang.list_file())
+            self.m_listCtrl1.InsertColumn(3, Lang.list_checksum())
+            self.m_listCtrl1.SetColumnWidth(0, GetScaledWidth(self.GetDPI(), 50))  # 设置每一列的宽度
+            self.m_listCtrl1.SetColumnWidth(1, GetScaledWidth(self.GetDPI(), 50))
+            self.m_listCtrl1.SetColumnWidth(2, GetScaledWidth(self.GetDPI(), 425))
+            self.m_listCtrl1.SetColumnWidth(3, GetScaledWidth(self.GetDPI(), 445))
+        elif self.m_choice1.GetSelection() == 1:
+            self.m_listCtrl1.InsertColumn(0, Lang.list_no())
+            self.m_listCtrl1.InsertColumn(1, Lang.list_file())
+            self.m_listCtrl1.InsertColumn(2, Lang.list_expected_checksum())
+            self.m_listCtrl1.InsertColumn(3, Lang.list_result())
+            self.m_listCtrl1.SetColumnWidth(0, GetScaledWidth(self.GetDPI(), 50))  # 设置每一列的宽度
+            self.m_listCtrl1.SetColumnWidth(1, GetScaledWidth(self.GetDPI(), 425))
+            self.m_listCtrl1.SetColumnWidth(2, GetScaledWidth(self.GetDPI(), 425))
+            self.m_listCtrl1.SetColumnWidth(3, GetScaledWidth(self.GetDPI(), 75))
+        self.m_menuItem13.SetItemLabel(Lang.rightmenu_show_details())
+        self.m_menuItem14.SetItemLabel(Lang.rightmenu_reslect_file())
+        self.m_menuItem15.SetItemLabel(Lang.rightmenu_edit_checksum())
+        self.m_menuItem16.SetItemLabel(Lang.rightmenu_copy_file_address())
+        self.m_menuItem17.SetItemLabel(Lang.rightmenu_copy_checksum())
+        self.m_menuItem18.SetItemLabel(Lang.rightmenu_delete())
+
+    def exit( self, event ):
+        if not self.ischeck:
+            if '/DEBUG:ForceEnableUpdate' in sys.argv[1:] or (
+                    getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS')):
+                otadlg.Destroy()
+            self.Destroy()
             sys.exit(0)
 
-    def export(self, path):
-        try:
-            with open(path, 'w', encoding=setting['ExportResultEncoding']) as file:
-                if self.m_choice4.GetSelection() == 0:
-                    file.write(
-                        language.s17() + ',' + language.s18() + ',' + language.s19() + ',' + language.s20() + '\n')
-                elif self.m_choice4.GetSelection() == 1:
-                    file.write(
-                        language.s17() + ',' + language.s19() + ',' + language.s134() + ',' + language.s135() + '\n')
-                for i in range(0, frame.m_listCtrl2.GetItemCount()):
-                    for ii in range(0, 4):
-                        if ii == 3:
-                            file.write('"' + frame.m_listCtrl2.GetItemText(i, 3) + '"\n')
-                        else:
-                            file.write('"' + frame.m_listCtrl2.GetItemText(i, ii) + '",')
-        except Exception as err:
-            toastone = wx.MessageDialog(None, language.s75(type(err).__name__ + ': ' + str(err)), language.s81(),
-                                        wx.OK | wx.OK_DEFAULT | wx.ICON_ERROR)
-            toastone.SetOKLabel(language.s57())
-            if toastone.ShowModal() == wx.ID_OK:  # 如果点击了提示框的确定按钮
-                toastone.Destroy()
-
-    def startcheck(self, event):
-        check = MyDialog4(None)
-        def timeformat(seconds):
-            hours = 0
-            minutes = 0
-            if seconds >= 60:
-                minutes = seconds // 60
-                seconds = seconds % 60
-            if minutes >= 60:
-                hours = minutes // 60
-                minutes = minutes % 60
-            if hours < 10:
-                hours = '0' + str(hours)
-            if minutes < 10:
-                minutes = '0' + str(minutes)
-            if seconds < 10:
-                seconds = '0' + str(seconds)
-            return str(hours) + ':' + str(minutes) + ':' + str(seconds)
-
-        def intformat(int):
-            l = list(str(int))
-            for i in range(0, len(l) // 3):
-                if len(l) + 1 - (i + 1) * 4 != 0:
-                    l.insert(len(l) + 1 - (i + 1) * 4, ',')
-            string = ''
-            for i in l:
-                string = string + i
-            return string
-
-        def filehash(self, path, algorithm):
-            global Time, Time2, allsize, allsize1, information, size, ispause, iscancel
-            size = os.path.getsize(path)  # 获取文件大小，单位是字节（byte）
-            size1 = size
-            if iscancel:
-                raise OperationCancelledError(language.s112())
-            with open(path, 'rb') as f:  # 以二进制模式读取文件
-                Time1 = time.time()
-                while size >= 1048576:  # 当文件大于1MB时将文件分块读取
-                    if iscancel:
-                        raise OperationCancelledError(language.s112())
-                    if ispause:
-                        while ispause:
-                            if iscancel:
-                                raise OperationCancelledError(language.s112())
-                    Time3 = time.time()
+    def start_check( self, event ):
+        self.calcdlg = Calculation(self)
+        def filehash(path, algorithm):
+            self.remain_size = os.path.getsize(path)
+            size = self.remain_size
+            Time_start = time.time()
+            if self.iscancel:
+                raise OperationCancelledError(Lang.error_operation_cancelled())
+            with open(path, 'rb') as f:
+                while self.remain_size >= 1048576:
+                    Cur_Time1 = time.time()
+                    if self.iscancel:
+                        raise OperationCancelledError(Lang.error_operation_cancelled())
+                    if self.ispause:
+                        while self.ispause:
+                            if self.iscancel:
+                                raise OperationCancelledError(Lang.error_operation_cancelled())
                     algorithm.update(f.read(1024 * 1024))
-                    size -= 1048576
-                    allsize1 += 1048576
-                    progress = ((size1 - size) / size1)
-                    allprogress = (allsize1 / allsize)
-                    Time1 = time.time()
-                    check.m_staticText1.SetLabelText(language.s66() + timeformat(int((Time1 - Time) // 1)))
-                    check.m_staticText4.SetLabelText(language.s67() + intformat(size1 - size) + ' ' + language.s73())
-                    if (1048576 / (Time1 - Time3)) >= 1099511627776:  #1TB
-                        check.m_staticText5.SetLabelText(language.s68() + str('%.2f' % (progress * 100)) + '% (' + str(
-                            '%.2f' % (1048576 / (Time1 - Time3) / 1099511627776)) + ' TB/s)')
-                    elif (1048576 / (Time1 - Time3)) >= 1073741824:  #1GB
-                        check.m_staticText5.SetLabelText(language.s68() + str('%.2f' % (progress * 100)) + '% (' + str(
-                            '%.2f' % (1048576 / (Time1 - Time3) / 1073741824)) + ' GB/s)')
-                    elif (1048576 / (Time1 - Time3)) >= 1048576:  #1MB
-                        check.m_staticText5.SetLabelText(language.s68() + str('%.2f' % (progress * 100)) + '% (' + str(
-                            '%.2f' % (1048576 / (Time1 - Time3) / 1048576)) + ' MB/s)')
-                    elif (1048576 / (Time1 - Time3)) >= 1024:  #1KB
-                        check.m_staticText5.SetLabelText(language.s68() + str('%.2f' % (progress * 100)) + '% (' + str(
-                            '%.2f' % (1048576 / (Time1 - Time3) / 1024)) + ' KB/s)')
-                    else:
-                        check.m_staticText5.SetLabelText(language.s68() + str('%.2f' % (progress * 100)) + '% (' + str(
-                            '%.2f' % (1048576 / (Time1 - Time3))) + ' ' + language.s73() + '/s)')
-                    check.m_gauge1.SetValue(int('%.0f' % (progress * 10000)))
-                    check.m_staticText6.SetLabelText(language.s69() + str('%.2f' % (allprogress * 100)) + '%')
-                    check.m_gauge2.SetValue(int('%.0f' % (allprogress * 10000)))
+                    self.remain_size -= 1048576
+                    self.cur_all_size += 1048576
+                    progress = ((size - self.remain_size) / size)
+                    allprogress = (self.cur_all_size / self.total_all_size)
+                    UsedTime = time.time()
+                    speed = 1048576 / (UsedTime - Cur_Time1)
+                    wx.CallAfter(self.calcdlg.update, (None, None), int((UsedTime - self.Time) // 1), None, None,
+                                 self.calcdlg.sizeformat(speed, True), float('%.2f' % progress),
+                                 float('%.2f' % allprogress))
                 algorithm.update(f.read())
-            check.m_staticText5.SetLabelText(language.s68() + '100.00%')
-            check.m_gauge1.SetValue(10000)
-            allsize1 += size
-            allprogress = (allsize1 / allsize)
-            check.m_staticText4.SetLabelText(language.s67() + intformat(size1) + ' ' + language.s73())
-            check.m_staticText6.SetLabelText(language.s69() + str('%.2f' % (allprogress * 100)) + '%')
-            check.m_gauge2.SetValue(int('%.0f' % (allprogress * 10000)))
-            information.append(timeformat(int(Time1 - Time2) // 1))
-            Time2 = time.time()
-            return algorithm.hexdigest()  # 输出计算结果
-
-        def filecrc32(self, path):
-            global Time, Time2, allsize, allsize1, information, size, ispause, iscancel
-            size = os.path.getsize(path)  # 获取文件大小，单位是字节（byte）
-            size1 = size
+            self.cur_all_size += self.remain_size
+            allprogress = (self.cur_all_size / self.total_all_size)
+            wx.CallAfter(self.calcdlg.update, (None, None), None, None, None, None, 1, float('%.2f' % allprogress))
+            self.informations.append(
+                {'Time': time.time() - Time_start, 'Error': None, 'ActualChecksum': algorithm.hexdigest()})
+            if setting['ChecksumUpper']:
+                return algorithm.hexdigest().upper()
+            else:
+                return algorithm.hexdigest().lower()
+        def filecrc32(path):
+            self.remain_size = os.path.getsize(path)
+            size = self.remain_size
+            Time_start = time.time()
             crc = 0
-            if iscancel:
-                raise OperationCancelledError(language.s112())
-            with open(path, 'rb') as f:  # 以二进制模式读取文件
-                Time1 = time.time()
-                while size >= 1048576:  # 当文件大于1MB时将文件分块读取
-                    if iscancel:
-                        raise OperationCancelledError(language.s112())
-                    if ispause:
-                        while ispause:
-                            if iscancel:
-                                raise OperationCancelledError(language.s112())
-                    Time3 = time.time()
+            if self.iscancel:
+                raise OperationCancelledError(Lang.error_operation_cancelled())
+            with open(path, 'rb') as f:
+                while self.remain_size >= 1048576:
+                    Cur_Time1 = time.time()
+                    if self.iscancel:
+                        raise OperationCancelledError(Lang.error_operation_cancelled())
+                    if self.ispause:
+                        while self.ispause:
+                            if self.iscancel:
+                                raise OperationCancelledError(Lang.error_operation_cancelled())
                     block = f.read(1024 * 1024)
-                    size -= 1048576
-                    allsize1 += 1048576
-                    progress = ((size1 - size) / size1)
-                    allprogress = (allsize1 / allsize)
-                    Time1 = time.time()
-                    check.m_staticText1.SetLabelText(language.s66() + timeformat(int((Time1 - Time) // 1)))
-                    check.m_staticText4.SetLabelText(language.s67() + intformat(size1 - size) + ' ' + language.s73())
-                    if (1048576 / (Time1 - Time3)) >= 1099511627776:  # 1TB
-                        check.m_staticText5.SetLabelText(language.s68() + str('%.2f' % (progress * 100)) + '% (' + str(
-                            '%.2f' % (1048576 / (Time1 - Time3) / 1099511627776)) + ' TB/s)')
-                    elif (1048576 / (Time1 - Time3)) >= 1073741824:  # 1GB
-                        check.m_staticText5.SetLabelText(language.s68() + str('%.2f' % (progress * 100)) + '% (' + str(
-                            '%.2f' % (1048576 / (Time1 - Time3) / 1073741824)) + ' GB/s)')
-                    elif (1048576 / (Time1 - Time3)) >= 1048576:  # 1MB
-                        check.m_staticText5.SetLabelText(language.s68() + str('%.2f' % (progress * 100)) + '% (' + str(
-                            '%.2f' % (1048576 / (Time1 - Time3) / 1048576)) + ' MB/s)')
-                    elif (1048576 / (Time1 - Time3)) >= 1024:  # 1KB
-                        check.m_staticText5.SetLabelText(language.s68() + str('%.2f' % (progress * 100)) + '% (' + str(
-                            '%.2f' % (1048576 / (Time1 - Time3) / 1024)) + ' KB/s)')
-                    else:
-                        check.m_staticText5.SetLabelText(language.s68() + str('%.2f' % (progress * 100)) + '% (' + str(
-                            '%.2f' % (1048576 / (Time1 - Time3))) + ' ' + language.s73() + '/s)')
-                    check.m_gauge1.SetValue(int('%.0f' % (progress * 10000)))
-                    check.m_staticText6.SetLabelText(language.s69() + str('%.2f' % (allprogress * 100)) + '%')
-                    check.m_gauge2.SetValue(int('%.0f' % (allprogress * 10000)))
                     crc = zlib.crc32(block, crc)
+                    self.remain_size -= 1048576
+                    self.cur_all_size += 1048576
+                    progress = ((size - self.remain_size) / size)
+                    allprogress = (self.cur_all_size / self.total_all_size)
+                    UsedTime = time.time()
+                    speed = 1048576 / (UsedTime - Cur_Time1)
+                    wx.CallAfter(self.calcdlg.update, (None, None), int((UsedTime - self.Time) // 1), None, None,
+                                 self.calcdlg.sizeformat(speed, True), float('%.2f' % progress),
+                                 float('%.2f' % allprogress))
                 block = f.read()
                 if block:
                     crc = zlib.crc32(block, crc)
-            check.m_staticText5.SetLabelText(language.s68() + '100.00%')
-            check.m_gauge1.SetValue(10000)
-            allsize1 += size
-            allprogress = (allsize1 / allsize)
-            check.m_staticText4.SetLabelText(language.s67() + intformat(size1) + ' ' + language.s73())
-            check.m_staticText6.SetLabelText(language.s69() + str('%.2f' % (allprogress * 100)) + '%')
-            check.m_gauge2.SetValue(int('%.0f' % (allprogress * 10000)))
-            information.append(timeformat(int(Time1 - Time2) // 1))
-            Time2 = time.time()
-            if len(str(hex(crc))[2:].lower()) < 8:
-                return '0' * (8 - len(str(hex(crc))[2:].lower())) + str(hex(crc))[2:].lower()
+            self.cur_all_size += self.remain_size
+            allprogress = (self.cur_all_size / self.total_all_size)
+            wx.CallAfter(self.calcdlg.update, (None, None), None, None, None, None, 1, float('%.2f' % allprogress))
+            self.informations.append(
+                {'Time': time.time() - Time_start, 'Error': None, 'ActualChecksum': str(hex(crc))[2:]})
+            if setting['ChecksumUpper']:
+                return str(hex(crc))[2:].upper()
             else:
-                return str(hex(crc))[2:].lower()  # 输出计算结果
+                return str(hex(crc))[2:].lower()
 
-        def gethash():
-            global Time, Time2, allsize, allsize1, ischeck, information, size, count, ispause, iscancel
-            ischeck = True
-            ispause = False
-            iscancel = False
-            self.SetStatusText(language.s82())
-            self.m_menuItem1.Enable(False)
-            self.m_menuItem2.Enable(False)
-            self.m_menuItem8.Enable(False)
-            self.m_menuItem4.Enable(False)
-            self.m_menuItem9.Enable(False)
-            self.m_menuItem3.Enable(False)
-            self.m_menuItem10.Enable(False)
-            self.m_menuItem172.Enable(False)
-            self.m_menuItem171.Enable(False)
-            self.m_choice1.Enable(False)
-            self.m_choice4.Enable(False)
-            self.m_button1.Enable(False)
-            self.m_button6.Enable(False)
-            self.m_button3.Enable(False)
-            self.m_listCtrl2.Enable(False)
-            listitems = []
-            if self.m_choice4.GetSelection() == 0:
-                for i in range(0, self.m_listCtrl2.GetItemCount()):
-                    if self.m_listCtrl2.GetItemText(i, 1) == '':
-                        listitems.append([int(self.m_listCtrl2.GetItemText(i, 0)), self.m_listCtrl2.GetItemText(i, 1),
-                                          self.m_listCtrl2.GetItemText(i, 2), self.m_listCtrl2.GetItemText(i, 3)])
-                    else:
-                        listitems.append(
-                            [int(self.m_listCtrl2.GetItemText(i, 0)), int(self.m_listCtrl2.GetItemText(i, 1)),
-                             self.m_listCtrl2.GetItemText(i, 2), self.m_listCtrl2.GetItemText(i, 3)])
-            elif self.m_choice4.GetSelection() == 1:
-                for i in range(0, self.m_listCtrl2.GetItemCount()):
-                    listitems.append(
-                        [int(self.m_listCtrl2.GetItemText(i, 0)), self.m_listCtrl2.GetItemText(i, 1),
-                         self.m_listCtrl2.GetItemText(i, 2), self.m_listCtrl2.GetItemText(i, 3)])
-            listitems = sorted(listitems, key=lambda x: x[0],
-                               reverse=False)
-            count = 0
-            count1 = 0
-            allsize = 0
-            allsize1 = 0
-            size = 0
-            information = []
-            for i in range(0, frame.m_listCtrl2.GetItemCount()):
-                if self.m_choice4.GetSelection() == 0:
-                    if listitems[i][2] != '':
-                        count = count + 1
-                        try:
-                            allsize = allsize + os.path.getsize(listitems[i][2])
-                        except Exception:
-                            continue
-                elif self.m_choice4.GetSelection() == 1:
-                    count = count + 1
+
+        self.ischeck = True
+        self.ispause = False
+        self.iscancel = False
+        self.SetStatusText(Lang.status_calculating())
+        self.m_menuItem1.Enable(False)
+        self.m_menuItem2.Enable(False)
+        self.m_menuItem3.Enable(False)
+        self.m_menuItem4.Enable(False)
+        self.m_menuItem6.Enable(False)
+        self.m_menuItem7.Enable(False)
+        self.m_menuItem8.Enable(False)
+        self.m_menuItem9.Enable(False)
+        self.m_menuItem10.Enable(False)
+        self.m_menuItem11.Enable(False)
+        self.m_choice1.Enable(False)
+        self.m_choice2.Enable(False)
+        self.m_button1.Enable(False)
+        self.m_button2.Enable(False)
+        self.m_button3.Enable(False)
+        self.m_listCtrl1.Enable(False)
+        self.listitems = []
+        if self.m_choice1.GetSelection() == 0:
+            for i in range(0, self.m_listCtrl1.GetItemCount()):
+                if self.m_listCtrl1.GetItemText(i, 1) == '':
+                    self.listitems.append([int(self.m_listCtrl1.GetItemText(i, 0)), self.m_listCtrl1.GetItemText(i, 1),
+                                      self.m_listCtrl1.GetItemText(i, 2), self.m_listCtrl1.GetItemText(i, 3)])
+                else:
+                    self.listitems.append(
+                        [int(self.m_listCtrl1.GetItemText(i, 0)), int(self.m_listCtrl1.GetItemText(i, 1)),
+                         self.m_listCtrl1.GetItemText(i, 2), self.m_listCtrl1.GetItemText(i, 3)])
+        elif self.m_choice1.GetSelection() == 1:
+            for i in range(0, self.m_listCtrl1.GetItemCount()):
+                self.listitems.append(
+                    [int(self.m_listCtrl1.GetItemText(i, 0)), self.m_listCtrl1.GetItemText(i, 1),
+                     self.m_listCtrl1.GetItemText(i, 2), self.m_listCtrl1.GetItemText(i, 3)])
+        self.listitems = sorted(self.listitems, key=lambda x: x[0],
+                           reverse=False)
+        self.total_count = 0
+        self.cur_count = 0
+        self.total_all_size = 0
+        self.cur_all_size = 0
+        self.informations = []
+        for i in range(0, frame.m_listCtrl1.GetItemCount()):
+            if self.m_choice1.GetSelection() == 0:
+                if self.listitems[i][2] != '':
+                    self.total_count += 1
                     try:
-                        allsize = allsize + os.path.getsize(listitems[i][1])
+                        self.total_all_size += os.path.getsize(self.listitems[i][2])
                     except Exception:
                         continue
+            elif self.m_choice1.GetSelection() == 1:
+                self.total_count += 1
+                try:
+                    self.total_all_size += os.path.getsize(self.listitems[i][1])
+                except Exception:
+                    continue
 
-
-            if count != 0:
-                check.Show()
-            check.SetTitle('(' + str(count1) + '/' + str(count) + ')' + language.s70())
-            check.m_staticText1.SetLabelText(language.s66() + '00:00:00')
-            Time = time.time()
-            Time2 = Time
-            if self.m_choice4.GetSelection() == 0:
-                columns = (2, 3)
-            else:
-            #elif self.m_choice4.GetSelection() == 1:
-                columns = (1, 3)
-            for i in range(0, frame.m_listCtrl2.GetItemCount()):
-                size = 0
-                if self.m_choice4.GetSelection() == 0 and listitems[i][columns[0]] == '':
-                    information.append('')
-                else:
-                    count1 = count1 + 1
-                    check.SetTitle('(' + str(count1) + '/' + str(count) + ') ' + language.s70())
-                    check.m_staticText2.SetLabelText(language.s71() + listitems[i][columns[0]])
+        if self.total_count > 0:
+            self.calcdlg.Show()
+        if self.m_choice1.GetSelection() == 0:
+            self.columns = (2, 3)
+        else:
+        #elif self.m_choice1.GetSelection() == 1:
+            self.columns = (1, 3)
+        self.Time = time.time()
+        def operate():
+            for i in range(0, frame.m_listCtrl1.GetItemCount()):
+                self.remain_size = 0
+                if not (self.m_choice1.GetSelection() == 0 and self.listitems[i][self.columns[0]] == ''):
+                    self.cur_count += 1
+                    if os.path.isfile(self.listitems[i][self.columns[0]]):
+                        wx.CallAfter(self.calcdlg.update, (self.cur_count, self.total_count), None,
+                                     self.listitems[i][self.columns[0]], os.path.getsize(
+                                self.listitems[i][self.columns[0]]), None, None, None)
+                    algorithms = {'MD5': hashlib.md5(),
+                                  'SHA-1': hashlib.sha1(),
+                                  'SHA-224': hashlib.sha224(),
+                                  'SHA-256': hashlib.sha256(),
+                                  'SHA-384': hashlib.sha384(),
+                                  'SHA-512': hashlib.sha512(),
+                                  'SHA3-224': hashlib.sha3_224(),
+                                  'SHA3-256': hashlib.sha3_256(),
+                                  'SHA3-384': hashlib.sha3_384(),
+                                  'SHA3-512': hashlib.sha3_512(),
+                                  'BLAKE2b': hashlib.blake2b(),
+                                  'BLAKE2s': hashlib.blake2s()
+                                  }
                     try:
-                        if os.path.getsize(listitems[i][columns[0]]) >= 1099511627776:  # 1TB
-                            check.m_staticText3.SetLabelText(language.s72() + str(
-                                '%.2f' % (os.path.getsize(
-                                    listitems[i][columns[0]]) / 1099511627776)) + ' TB (' + intformat(
-                                os.path.getsize(listitems[i][columns[0]])) + ' ' + language.s73() + ')')
-                        elif os.path.getsize(listitems[i][columns[0]]) >= 1073741824:  # 1GB
-                            check.m_staticText3.SetLabelText(language.s72() + str(
-                                '%.2f' % (os.path.getsize(
-                                    listitems[i][columns[0]]) / 1073741824)) + ' GB (' + intformat(
-                                os.path.getsize(listitems[i][columns[0]])) + ' ' + language.s73() + ')')
-                        elif os.path.getsize(listitems[i][columns[0]]) >= 1048576:  # 1MB
-                            check.m_staticText3.SetLabelText(language.s72() + str(
-                                '%.2f' % (os.path.getsize(
-                                    listitems[i][columns[0]]) / 1048576)) + ' MB (' + intformat(
-                                os.path.getsize(listitems[i][columns[0]])) + ' ' + language.s73() + ')')
-                        elif os.path.getsize(listitems[i][columns[0]]) >= 1024:  # 1KB
-                            check.m_staticText3.SetLabelText(language.s72() + str(
-                                '%.2f' % (os.path.getsize(
-                                    listitems[i][columns[0]]) / 1024)) + ' KB (' + intformat(
-                                os.path.getsize(listitems[i][columns[0]])) + ' ' + language.s73() + ')')
+                        if self.m_choice2.GetString(self.m_choice2.GetSelection()) != 'CRC-32':
+                            self.listitems[i][self.columns[1]] = filehash(self.listitems[i][self.columns[0]],
+                                                                          algorithms[self.m_choice2.GetString(
+                                                                              self.m_choice2.GetSelection())])
                         else:
-                            check.m_staticText3.SetLabelText(language.s72() + str(
-                                intformat(os.path.getsize(
-                                    listitems[i][columns[0]]))) + ' ' + language.s73())
-                        if self.m_choice1.GetString(self.m_choice1.GetSelection()) == 'MD5':
-                            listitems[i][columns[1]] = filehash(check, listitems[i][columns[0]],
-                                                                     hashlib.md5())
-                        elif self.m_choice1.GetString(self.m_choice1.GetSelection()) == 'SHA-1':
-                            listitems[i][columns[1]] = filehash(check, listitems[i][columns[0]],
-                                                                     hashlib.sha1())
-                        elif self.m_choice1.GetString(self.m_choice1.GetSelection()) == 'SHA-224':
-                            listitems[i][columns[1]] = filehash(check, listitems[i][columns[0]],
-                                                                     hashlib.sha224())
-                        elif self.m_choice1.GetString(self.m_choice1.GetSelection()) == 'SHA-256':
-                            listitems[i][columns[1]] = filehash(check, listitems[i][columns[0]],
-                                                                     hashlib.sha256())
-                        elif self.m_choice1.GetString(self.m_choice1.GetSelection()) == 'SHA-384':
-                            listitems[i][columns[1]] = filehash(check, listitems[i][columns[0]],
-                                                                     hashlib.sha384())
-                        elif self.m_choice1.GetString(self.m_choice1.GetSelection()) == 'SHA-512':
-                            listitems[i][columns[1]] = filehash(check, listitems[i][columns[0]],
-                                                                     hashlib.sha512())
-                        elif self.m_choice1.GetString(self.m_choice1.GetSelection()) == 'SHA3-224':
-                            listitems[i][columns[1]] = filehash(check, listitems[i][columns[0]],
-                                                                     hashlib.sha3_224())
-                        elif self.m_choice1.GetString(self.m_choice1.GetSelection()) == 'SHA3-256':
-                            listitems[i][columns[1]] = filehash(check, listitems[i][columns[0]],
-                                                                     hashlib.sha3_256())
-                        elif self.m_choice1.GetString(self.m_choice1.GetSelection()) == 'SHA3-384':
-                            listitems[i][columns[1]] = filehash(check, listitems[i][columns[0]],
-                                                                     hashlib.sha3_384())
-                        elif self.m_choice1.GetString(self.m_choice1.GetSelection()) == 'SHA3-512':
-                            listitems[i][columns[1]] = filehash(check, listitems[i][columns[0]],
-                                                                     hashlib.sha3_512())
-                        elif self.m_choice1.GetString(self.m_choice1.GetSelection()) == 'BLAKE2b':
-                            listitems[i][columns[1]] = filehash(check, listitems[i][columns[0]],
-                                                                     hashlib.blake2b())
-                        elif self.m_choice1.GetString(self.m_choice1.GetSelection()) == 'BLAKE2s':
-                            listitems[i][columns[1]] = filehash(check, listitems[i][columns[0]],
-                                                                     hashlib.blake2s())
-                        elif self.m_choice1.GetString(self.m_choice1.GetSelection()) == 'CRC-32':
-                            listitems[i][columns[1]] = filecrc32(check, listitems[i][columns[0]])
+                            self.listitems[i][self.columns[1]] = filecrc32(self.listitems[i][self.columns[0]])
                     except Exception as err:
-                        information.append(type(err).__name__ + ': ' + str(err))
-                        allsize1 = allsize1 + size
-                        Time2 = time.time()
-                        listitems[i][columns[1]] = language.s81()
+                        self.cur_all_size += self.remain_size
+                        self.informations.append(
+                            {'Time': None, 'Error': type(err).__name__ + ': ' + str(err), 'ActualChecksum': None})
+                        self.listitems[i][self.columns[1]] = Lang.str_error()
                         continue
-            ischeck = False
-            check.Destroy()
-            self.SetStatusText(language.s83())
-            if self.m_choice4.GetSelection() == 0:
+                else:
+                    self.informations.append(self.information_default)
+            self.ischeck = False
+            wx.CallAfter(self.calcdlg.Destroy)
+            wx.CallAfter(self.SetStatusText, Lang.status_checking())
+            if self.m_choice1.GetSelection() == 0:
                 group = []
-                for i in range(0, self.m_listCtrl2.GetItemCount()):
+                for i in range(0, self.m_listCtrl1.GetItemCount()):
                     tf = False
-                    if listitems[i][3] != language.s81():
+                    if self.listitems[i][3] != Lang.str_error():
                         for ii in range(0, len(group)):
-                            if listitems[i][3] == group[ii]:
-                                listitems[i][1] = ii
+                            if self.listitems[i][3] == group[ii]:
+                                self.listitems[i][1] = ii
                                 tf = True
                                 break
                         if not tf:
-                            group.append(listitems[i][3])
-                            listitems[i][1] = len(group) - 1
-            elif self.m_choice4.GetSelection() == 1:
-                for i in range(0, self.m_listCtrl2.GetItemCount()):
-                    if listitems[i][3] != language.s81():
-                        if listitems[i][3] == listitems[i][2]:
-                            listitems[i][3] = 1
+                            group.append(self.listitems[i][3])
+                            self.listitems[i][1] = len(group) - 1
+            elif self.m_choice1.GetSelection() == 1:
+                for i in range(0, self.m_listCtrl1.GetItemCount()):
+                    if self.listitems[i][3] != Lang.str_error():
+                        if self.listitems[i][3] == self.listitems[i][2]:
+                            self.listitems[i][3] = 1
                         else:
-                            listitems[i][3] = 0
-            if self.m_listCtrl2.GetSortIndicator() != -1:
-                listitems = sorted(listitems, key=lambda x: x[self.m_listCtrl2.GetSortIndicator()],
-                                   reverse=not self.m_listCtrl2.IsAscendingSortIndicator())
-            for i in range(0, len(listitems)):
-                self.m_listCtrl2.SetItem(i, 0, str(listitems[i][0]))
-                self.m_listCtrl2.SetItem(i, 1, str(listitems[i][1]))
-                self.m_listCtrl2.SetItem(i, 2, str(listitems[i][2]))
-                self.m_listCtrl2.SetItem(i, 3, str(listitems[i][3]))
-                if self.m_choice4.GetSelection() == 1:
-                    if str(listitems[i][3]) == '1':
-                        self.m_listCtrl2.SetItemBackgroundColour(i, wx.Colour(198, 239, 206))    #Green
-                    elif str(listitems[i][3]) == language.s81():
-                        self.m_listCtrl2.SetItemBackgroundColour(i, wx.Colour(255, 235, 156))    #Yellow
-                    elif str(listitems[i][3]) == '0':
-                        self.m_listCtrl2.SetItemBackgroundColour(i, wx.Colour(255, 199, 206))    #Red
+                            self.listitems[i][3] = 0
+            if self.m_listCtrl1.GetSortIndicator() != -1:
+                self.listitems = sorted(self.listitems, key=lambda x: x[self.m_listCtrl1.GetSortIndicator()],
+                                        reverse=not self.m_listCtrl1.IsAscendingSortIndicator())
+            for i in range(0, len(self.listitems)):
+                wx.CallAfter(self.m_listCtrl1.SetItem, i, 0, str(self.listitems[i][0]))
+                wx.CallAfter(self.m_listCtrl1.SetItem, i, 1, str(self.listitems[i][1]))
+                wx.CallAfter(self.m_listCtrl1.SetItem, i, 2, str(self.listitems[i][2]))
+                wx.CallAfter(self.m_listCtrl1.SetItem, i, 3, str(self.listitems[i][3]))
+                if self.m_choice1.GetSelection() == 1:
+                    if str(self.listitems[i][3]) == '1':
+                        wx.CallAfter(self.m_listCtrl1.SetItemBackgroundColour, i, wx.Colour(198, 239, 206))    #Green
+                    elif str(self.listitems[i][3]) == Lang.str_error():
+                        wx.CallAfter(self.m_listCtrl1.SetItemBackgroundColour, i, wx.Colour(255, 235, 156))    #Yellow
+                    elif str(self.listitems[i][3]) == '0':
+                        wx.CallAfter(self.m_listCtrl1.SetItemBackgroundColour, i, wx.Colour(255, 199, 206))    #Red
             self.m_menuItem1.Enable(True)
             self.m_menuItem2.Enable(True)
-            self.m_menuItem8.Enable(True)
-            self.m_menuItem4.Enable(True)
-            self.m_menuItem9.Enable(True)
             self.m_menuItem3.Enable(True)
+            self.m_menuItem4.Enable(True)
+            self.m_menuItem6.Enable(True)
+            self.m_menuItem7.Enable(True)
+            self.m_menuItem8.Enable(True)
+            self.m_menuItem9.Enable(True)
             self.m_menuItem10.Enable(True)
-            self.m_menuItem172.Enable(True)
-            if '/DEBUG:ForceEnableUpdate' in sys.argv[1:] or os.path.basename(sys.argv[0]).split('.')[
-                -1].lower() == 'exe':
-                self.m_menuItem171.Enable(True)
+            if '/DEBUG:ForceEnableUpdate' in sys.argv[1:] or (
+                    getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS')):
+                self.m_menuItem11.Enable(True)
             self.m_choice1.Enable(True)
-            self.m_choice4.Enable(True)
+            self.m_choice2.Enable(True)
             self.m_button1.Enable(True)
-            self.m_button6.Enable(True)
+            self.m_button2.Enable(True)
             self.m_button3.Enable(True)
-            self.m_listCtrl2.Enable(True)
-            self.SetStatusText('')
-            if isexport:
-                self.SetStatusText(language.s84() + export)
-                main.export(self, export)
-            if command != '':
-                self.SetStatusText(language.s85() + command)
+            self.m_listCtrl1.Enable(True)
+            wx.CallAfter(self.SetStatusText, '')
+            if self.aftersave:
+                wx.CallAfter(self.SetStatusText, Lang.status_exporting(self.aftersave))
+                wx.CallAfter(self.export_main, self.aftersave)
+            if self.aftercmd:
+                wx.CallAfter(self.SetStatusText, Lang.status_saving(self.aftercmd))
                 try:
-                    os.startfile(command)
+                    os.startfile(self.aftercmd)
                 except FileNotFoundError:
                     try:
-                        os.popen(command)
+                        subprocess.Popen(self.aftercmd)
                     except Exception as err:
-                        toastone = wx.MessageDialog(None, language.s75(type(err).__name__ + ': ' + str(err)),
-                                                    language.s81(),
+                        toastone = wx.MessageDialog(None, Lang.error_message(type(err).__name__ + ': ' + str(err)),
+                                                    Lang.title(),
                                                     wx.OK | wx.OK_DEFAULT | wx.ICON_ERROR)
-                        toastone.SetOKLabel(language.s57())
+                        toastone.SetOKLabel(Lang.dlg_btn_ok())
                         if toastone.ShowModal() == wx.ID_OK:  # 如果点击了提示框的确定按钮
                             toastone.Destroy()
                 except Exception as err:
-                    toastone = wx.MessageDialog(None, language.s75(type(err).__name__ + ': ' + str(err)),
-                                                language.s81(),
+                    toastone = wx.MessageDialog(None, Lang.error_message(type(err).__name__ + ': ' + str(err)),
+                                                Lang.title(),
                                                 wx.OK | wx.OK_DEFAULT | wx.ICON_ERROR)
-                    toastone.SetOKLabel(language.s57())
+                    toastone.SetOKLabel(Lang.dlg_btn_ok())
                     if toastone.ShowModal() == wx.ID_OK:  # 如果点击了提示框的确定按钮
                         toastone.Destroy()
-            self.SetStatusText('')
+            wx.CallAfter(self.SetStatusText, '')
+            wx.CallAfter(self.Layout)
 
-        thread1 = threading.Thread(target=gethash, args=(), daemon=True)
+
+        thread1 = threading.Thread(target=operate, args=(), daemon=True)
         thread1.start()
 
-    def addfile(self, event):
-        global information
-        if self.m_choice4.GetSelection() == 0:
-            dlg = wx.FileDialog(self, message=language.s22(),
+
+    def add_file( self, event, file=None ):
+        if self.m_choice1.GetSelection() == 0:
+            dlg = wx.FileDialog(self, message=Lang.filedlg_title_add(),
                                 defaultDir='',
                                 defaultFile='',
-                                wildcard=language.s23(),
+                                wildcard=Lang.filedlg_wildcard_1(),
                                 style=wx.FD_OPEN | wx.FD_MULTIPLE)
             if dlg.ShowModal() == wx.ID_OK:
                 fahs = dlg.GetPaths()
                 dlg.Destroy()
                 for fah in fahs:
-                    index = frame.m_listCtrl2.InsertItem(frame.m_listCtrl2.GetItemCount(),
-                                                         str(frame.m_listCtrl2.GetItemCount() + 1))
-                    frame.m_listCtrl2.SetItem(index, 1, '')
-                    frame.m_listCtrl2.SetItem(index, 2, fah)
-                    frame.m_listCtrl2.SetItem(index, 3, '')
-                    information.append('/')
-                frame.sort(None)
-        elif self.m_choice4.GetSelection() == 1:
-            self.additem = MyDialog8(None)
-            self.additem.Show(True)
+                    index = self.m_listCtrl1.InsertItem(self.m_listCtrl1.GetItemCount(),
+                                                         str(self.m_listCtrl1.GetItemCount() + 1))
+                    self.m_listCtrl1.SetItem(index, 1, '')
+                    self.m_listCtrl1.SetItem(index, 2, fah)
+                    self.m_listCtrl1.SetItem(index, 3, '')
+                    self.informations.append(self.information_default)
+                self.sort(None)
+        elif self.m_choice1.GetSelection() == 1:
+            itemdlg = ItemDialog(self)
+            if file:
+                itemdlg.set_file(file)
+            if itemdlg.ShowModal() == wx.ID_OK:
+                fah = itemdlg.get_input()
+                itemdlg.Destroy()
+                index = self.m_listCtrl1.InsertItem(self.m_listCtrl1.GetItemCount(),
+                                                     str(self.m_listCtrl1.GetItemCount() + 1))
+                self.m_listCtrl1.SetItem(index, 1, fah[0])
+                if setting['ChecksumUpper']:
+                    self.m_listCtrl1.SetItem(index, 2, fah[1].upper())
+                else:
+                    self.m_listCtrl1.SetItem(index, 2, fah[1].lower())
+                self.m_listCtrl1.SetItem(index, 3, '')
+                self.informations.append(self.information_default)
+                self.sort(None)
 
-    def addhash(self, event):
-        addhash = MyDialog2(None, language.s42())
-        addhash.Show()
+    def add_checksum( self, event ):
+        dlg = ChecksumDialog(self)
+        dlg.set_mode(False)
+        if dlg.ShowModal() == wx.ID_OK:
+            index = self.m_listCtrl1.InsertItem(self.m_listCtrl1.GetItemCount(),
+                                                str(self.m_listCtrl1.GetItemCount() + 1))
+            self.m_listCtrl1.SetItem(index, 1, '')
+            self.m_listCtrl1.SetItem(index, 2, '')
+            if setting['ChecksumUpper']:
+                self.m_listCtrl1.SetItem(index, 3, dlg.get_checksum().upper())
+            else:
+                self.m_listCtrl1.SetItem(index, 3, dlg.get_checksum().lower())
+            self.informations.append(self.information_default)
+        dlg.Destroy()
 
-    def inputtask(self, event):
-        global file
-        if self.m_choice4.GetSelection() == 0:
-            dlg = wx.FileDialog(self, message=language.s49(),
+    def intask(self, file, encoding):
+        try:
+            with open(file, 'r', encoding=encoding, errors='replace') as file:
+                l = file.readlines()
+        except Exception as err:
+            tf = False
+            toastone = wx.MessageDialog(None, Lang.error_loading_task(type(err).__name__ + ': ' + str(err)), Lang.title(),
+                                        wx.OK | wx.OK_DEFAULT | wx.ICON_ERROR)
+            toastone.SetOKLabel(Lang.dlg_btn_ok())
+            if toastone.ShowModal() == wx.ID_OK:  # 如果点击了提示框的确定按钮
+                toastone.Destroy()
+        else:
+            for i in range(0, len(l)):
+                l[i] = l[i].rstrip()
+            for i in range(0, len(l)):
+                a = l[i].split('##')
+                b = ''
+                for j in range(len(a)):
+                    if '#' in a[j]:
+                        b = b + a[j].partition('#')[0]
+                        break
+                    else:
+                        if j != len(a) - 1:
+                            b = b + a[j] + '#'
+                        else:
+                            b = b + a[j]
+                l[i] = b
+                del a
+                del b
+            while '' in l:
+                l.remove('')
+            tf = False
+            if len(l) == 0:
+                toastone = wx.MessageDialog(None, Lang.error_unsupported_algorithm(), Lang.title(),
+                                            wx.OK | wx.OK_DEFAULT | wx.ICON_ERROR)
+                toastone.SetOKLabel(Lang.dlg_btn_ok())
+                if toastone.ShowModal() == wx.ID_OK:  # 如果点击了提示框的确定按钮
+                    toastone.Destroy()
+            else:
+                for i in range(0, len(l)):
+                    l[i] = l[i].rstrip()
+                if l[0].startswith('<code: ') and l[0].endswith('>'):
+                    del l[0]
+                l[0] = l[0].lower()
+                if l[0] == 'md5':
+                    self.m_choice2.SetSelection(0)
+                    tf = True
+                elif l[0] == 'sha1' or l[0] == 'sha-1':
+                    self.m_choice2.SetSelection(1)
+                    tf = True
+                elif l[0] == 'sha224' or l[0] == 'sha-224':
+                    self.m_choice2.SetSelection(2)
+                    tf = True
+                elif l[0] == 'sha256' or l[0] == 'sha-256':
+                    self.m_choice2.SetSelection(3)
+                    tf = True
+                elif l[0] == 'sha384' or l[0] == 'sha-384':
+                    self.m_choice2.SetSelection(4)
+                    tf = True
+                elif l[0] == 'sha512' or l[0] == 'sha-512':
+                    self.m_choice2.SetSelection(5)
+                    tf = True
+                elif l[0] == 'sha3-224':
+                    self.m_choice2.SetSelection(6)
+                    tf = True
+                elif l[0] == 'sha3-256':
+                    self.m_choice2.SetSelection(7)
+                    tf = True
+                elif l[0] == 'sha3-384':
+                    self.m_choice2.SetSelection(8)
+                    tf = True
+                elif l[0] == 'sha3-512':
+                    self.m_choice2.SetSelection(9)
+                    tf = True
+                elif l[0] == 'blake2b':
+                    self.m_choice2.SetSelection(10)
+                    tf = True
+                elif l[0] == 'blake2s':
+                    self.m_choice2.SetSelection(11)
+                    tf = True
+                elif l[0] == 'crc32' or l[0] == 'crc-32':
+                    self.m_choice2.SetSelection(12)
+                    tf = True
+                else:
+                    toastone = wx.MessageDialog(None, Lang.error_unsupported_algorithm(), Lang.title(),
+                                                wx.OK | wx.OK_DEFAULT | wx.ICON_ERROR)
+                    toastone.SetOKLabel(Lang.dlg_btn_ok())
+                    if toastone.ShowModal() == wx.ID_OK:  # 如果点击了提示框的确定按钮
+                        toastone.Destroy()
+                    tf = False
+        if tf:
+            ll = []
+            for i in range(len(l)):
+                ll.append(l[i].lower())
+            try:
+                if ll[1] != '<file>' and ll[1] != '<hash>':
+                    tf = False
+                    toastone = wx.MessageDialog(None, Lang.error_not_defined(), Lang.title(),
+                                                wx.OK | wx.OK_DEFAULT | wx.ICON_ERROR)
+                    toastone.SetOKLabel(Lang.dlg_btn_ok())
+                    if toastone.ShowModal() == wx.ID_OK:  # 如果点击了提示框的确定按钮
+                        toastone.Destroy()
+            except IndexError:
+                toastone = wx.MessageDialog(None, Lang.error_nodata(), Lang.title(),
+                                            wx.OK | wx.OK_DEFAULT | wx.ICON_WARNING)
+                toastone.SetOKLabel(Lang.dlg_btn_ok())
+                if toastone.ShowModal() == wx.ID_OK:  # 如果点击了提示框的确定按钮
+                    toastone.Destroy()
+                tf = False
+        if tf:
+            foha = ''
+            count = self.m_listCtrl1.GetItemCount()
+            for i in range(1, len(l)):
+                if ll[i] == '<file>':
+                    foha = 1
+                elif ll[i] == '<hash>':
+                    foha = 2
+                else:
+                    if foha == 1:
+                        if l[i][0] == '"' and l[i][len(l[i]) - 1] == '"':
+                            data1 = list(l[i])
+                            del data1[0]
+                            del data1[len(data1) - 1]
+                            l[i] = ''
+                            for ii in range(len(data1)):
+                                l[i] = l[i] + data1[ii]
+                        fs = glob.glob(l[i])
+                        if len(fs) == 0:
+                            index = self.m_listCtrl1.InsertItem(self.m_listCtrl1.GetItemCount(),
+                                                                 str(self.m_listCtrl1.GetItemCount() + 1))
+                            self.m_listCtrl1.SetItem(index, 1, '')
+                            self.m_listCtrl1.SetItem(index, 2, l[i])
+                            self.m_listCtrl1.SetItem(index, 3, '')
+                            self.informations.append(self.information_default)
+                        else:
+                            for i in range(0, len(fs)):
+                                if os.path.isfile(fs[i]) == False:
+                                    fs[i] = ''
+                            while '' in fs:
+                                fs.remove('')
+                            for fah in fs:
+                                index = self.m_listCtrl1.InsertItem(self.m_listCtrl1.GetItemCount(),
+                                                                     str(self.m_listCtrl1.GetItemCount() + 1))
+                                self.m_listCtrl1.SetItem(index, 1, '')
+                                self.m_listCtrl1.SetItem(index, 2, fah)
+                                self.m_listCtrl1.SetItem(index, 3, '')
+                                self.informations.append(self.information_default)
+                    elif foha == 2:
+                        if setting['ChecksumUpper']:
+                            l[i] = l[i].upper()
+                        else:
+                            l[i] = l[i].lower()
+                        index = self.m_listCtrl1.InsertItem(self.m_listCtrl1.GetItemCount(),
+                                                             str(self.m_listCtrl1.GetItemCount() + 1))
+                        self.m_listCtrl1.SetItem(index, 1, '')
+                        self.m_listCtrl1.SetItem(index, 2, '')
+                        self.m_listCtrl1.SetItem(index, 3, l[i])
+                        self.informations.append(self.information_default)
+            if count == self.m_listCtrl1.GetItemCount():
+                toastone = wx.MessageDialog(None, Lang.error_nodata(), Lang.title(),
+                                            wx.OK | wx.OK_DEFAULT | wx.ICON_WARNING)
+                toastone.SetOKLabel(Lang.dlg_btn_ok())
+                if toastone.ShowModal() == wx.ID_OK:  # 如果点击了提示框的确定按钮
+                    toastone.Destroy()
+            self.sort(None)
+
+    def open_task( self, event ):
+        if self.m_choice1.GetSelection() == 0:
+            dlg = wx.FileDialog(self, message=Lang.filedlg_title_opentask(),
                                 defaultDir='',
                                 defaultFile='',
-                                wildcard=language.s48(),
+                                wildcard=Lang.filedlg_wildcard_2(),
                                 style=wx.FD_OPEN)
             if dlg.ShowModal() == wx.ID_OK:
                 file = dlg.GetPath()
                 dlg.Destroy()
+                encodingpick = None
+                modal = None
                 try:
                     with open(file, 'rb') as f:
                         coding = f.readline().decode('ascii').rstrip()
                 except UnicodeDecodeError:
                     with open(file, 'rb') as f:
                         coding = f.readline()
-                    if coding.startswith(b'\xef\xbb\xbf'):
-                        try:
-                            intask(file, 'utf-8')
-                        except UnicodeDecodeError:
-                            encodingpick = MyDialog5(None, 'utf-8')
-                            encodingpick.Show()
-                    elif coding.startswith(b'\x00\x00\xfe\xff') or coding.startswith(b'\xff\xfe\x00\x00'):
-                        try:
-                            intask(file, 'utf-32')
-                        except UnicodeDecodeError:
-                            encodingpick = MyDialog5(None, 'utf-32')
-                            encodingpick.Show()
-                    elif coding.startswith(b'\xfe\xff') or coding.startswith(b'\xff\xfe'):
-                        try:
-                            intask(file, 'utf-16')
-                        except UnicodeDecodeError:
-                            encodingpick = MyDialog5(None, 'utf-16')
-                            encodingpick.Show()
-                    elif coding.startswith(b'\x2b\x2f\x76'):
-                        try:
-                            intask(file, 'utf-7')
-                        except UnicodeDecodeError:
-                            encodingpick = MyDialog5(None, 'utf-7')
-                            encodingpick.Show()
-                    elif coding.startswith(b'\x84\x31\x95\x33'):
-                        try:
-                            intask(file, 'gb18030')
-                        except UnicodeDecodeError:
-                            encodingpick = MyDialog5(None, 'gb18030')
-                            encodingpick.Show()
-                    else:
-                        encodingpick = MyDialog5(None, 'utf-8')
-                        encodingpick.Show()
+                    BOM2Encoding = {b'\xef\xbb\xbf': 'UTF_8',
+                                    b'\x00\x00\xfe\xff': 'UTF_32',
+                                    b'\xff\xfe\x00\x00': 'UTF_32',
+                                    b'\xfe\xff': 'UTF_16',
+                                    b'\xff\xfe': 'UTF_16',
+                                    b'\x2b\x2f\x76': 'UTF_7',
+                                    b'\x84\x31\x95\x33': 'GB18030'}
+                    tf = False
+                    for i in BOM2Encoding.keys():
+                        if coding.startswith(i):
+                            try:
+                                with open(file, 'r', encoding=BOM2Encoding[i]) as f:
+                                    f.read()
+                                self.intask(file, BOM2Encoding[i])
+                            except UnicodeDecodeError:
+                                encodingpick = EncodingPicker(self)
+                                encodingpick.set_file(file)
+                                encodingpick.set_encoding(BOM2Encoding[i])
+                                modal = encodingpick.ShowModal()
+                            tf = True
+                            break
+                    if not tf:
+                        encodingpick = EncodingPicker(self)
+                        encodingpick.set_file(file)
+                        encodingpick.set_encoding('UTF_8')
+                        modal = encodingpick.ShowModal()
                 else:
-                    if coding[:9] == '# coding=':
+                    if coding.startswith('<code: ') and coding.endswith('>'):
                         try:
-                            with open(file, 'r', encoding=coding[9:]) as f:
+                            with open(file, 'r', encoding=find_encoding_key(coding[7:-1])) as f:
                                 f.read()
                         except (UnicodeDecodeError, LookupError):
-                            encodingpick = MyDialog5(None, coding[9:])
-                            encodingpick.Show()
+                            encodingpick = EncodingPicker(self)
+                            encodingpick.set_file(file)
+                            encodingpick.set_encoding(find_encoding_key(coding[7:-1]))
+                            modal = encodingpick.ShowModal()
                         else:
-                            intask(file, coding[9:])
-                    elif coding[:8] == '#coding=':
-                        try:
-                            with open(file, 'r', encoding=coding[8:]) as f:
-                                f.read()
-                        except (UnicodeDecodeError, LookupError):
-                            encodingpick = MyDialog5(None, coding[8:])
-                            encodingpick.Show()
-                        else:
-                            intask(file, coding[8:])
+                            self.intask(file, str(find_encoding_key(coding[7:-1])))
                     else:
-                        encodingpick = MyDialog5(None, 'utf-8')
-                        encodingpick.Show()
-        elif self.m_choice4.GetSelection() == 1:
-            self.inputshafile = MyDialog9(None)
-            self.inputshafile.Show()
+                        encodingpick = EncodingPicker(self)
+                        encodingpick.set_file(file)
+                        encodingpick.set_encoding('UTF_8')
+                        modal = encodingpick.ShowModal()
+                if encodingpick:
+                    if modal == wx.ID_OK:
+                        self.intask(file, encodingpick.get_encoding())
+                    encodingpick.Destroy()
+        elif self.m_choice1.GetSelection() == 1:
+            dlg = OpenTaskDialog(self)
+            if dlg.ShowModal() == wx.ID_OK:
+                for i in dlg.get_input().split('\n'):
+                    if i:
+                        splitedline = i.split(' ')
+                        while len(splitedline) >= 2 and splitedline[1] == '':
+                            del splitedline[1]
+                        fah = ''
+                        for j in splitedline[1:]:
+                            fah += j + ' '
 
-    def outputtask(self, event):
-        dlg = wx.FileDialog(self, message=language.s60(),
+                        index = self.m_listCtrl1.InsertItem(self.m_listCtrl1.GetItemCount(),
+                                                             str(self.m_listCtrl1.GetItemCount() + 1))
+                        fah = fah[:-1]
+                        if fah:
+                            if (fah[0] == '"' and fah[-1] == '"') or (fah[0] == "'" and fah[-1] == "'"):
+                                fah = fah[1:-1]
+                            if fah[0] == '*':
+                                fah = fah[1:]
+                            self.m_listCtrl1.SetItem(index, 1, fah)
+                        else:
+                            self.m_listCtrl1.SetItem(index, 1, '')
+                        if setting['ChecksumUpper']:
+                            self.m_listCtrl1.SetItem(index, 2, i.split(' ')[0].upper())
+                        else:
+                            self.m_listCtrl1.SetItem(index, 2, i.split(' ')[0].lower())
+                        self.m_listCtrl1.SetItem(index, 3, '')
+                        self.informations.append(self.information_default)
+                frame.sort(None)
+
+
+    def save_task( self, event ):
+        dlg = wx.FileDialog(self, message=Lang.filedlg_title_savetask(),
                             defaultDir='',
                             defaultFile='',
-                            wildcard=language.s48(),
+                            wildcard=Lang.filedlg_wildcard_2(),
                             style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT)
         if dlg.ShowModal() == wx.ID_OK:
-            self.SetStatusText(language.s86() + dlg.GetPath())
+            self.SetStatusText(Lang.status_saving(dlg.GetPath()))
             try:
-                with open(dlg.GetPath(), 'w', encoding=setting['SaveTaskEncoding']) as file:
+                with open(dlg.GetPath(), 'w', encoding=str(setting['SaveTaskEncoding'])) as file:
                     dlg.Destroy()
-                    if self.m_choice4.GetSelection() == 0:
-                        f = '# coding=' + setting['SaveTaskEncoding'] + '\n' + frame.m_choice1.GetString(
-                            frame.m_choice1.GetSelection()) + '\n'
-                        if frame.m_listCtrl2.GetItemCount() != 0:
+                    if self.m_choice1.GetSelection() == 0:
+                        if not setting['CompatibleWithOldTask']:
+                            f = '<code: ' + str(setting['SaveTaskEncoding']) + '>\n' + frame.m_choice2.GetString(
+                                frame.m_choice2.GetSelection()) + '\n'
+                        else:
+                            f = frame.m_choice2.GetString(frame.m_choice2.GetSelection()) + '\n'
+                        if frame.m_listCtrl1.GetItemCount() != 0:
                             foha = ''
-                            for i in range(0, frame.m_listCtrl2.GetItemCount()):
-                                if frame.m_listCtrl2.GetItemText(i, 2) == '' and foha != 2:
+                            for i in range(0, frame.m_listCtrl1.GetItemCount()):
+                                if frame.m_listCtrl1.GetItemText(i, 2) == '' and foha != 2:
                                     foha = 2
-                                    f = f + '<hash>\n' + frame.m_listCtrl2.GetItemText(i, 3) + '\n'
-                                elif frame.m_listCtrl2.GetItemText(i, 2) == '' and foha == 2:
-                                    f = f + frame.m_listCtrl2.GetItemText(i, 3) + '\n'
-                                elif frame.m_listCtrl2.GetItemText(i, 2) != '' and foha != 1:
+                                    f = f + '<hash>\n' + frame.m_listCtrl1.GetItemText(i, 3) + '\n'
+                                elif frame.m_listCtrl1.GetItemText(i, 2) == '' and foha == 2:
+                                    f = f + frame.m_listCtrl1.GetItemText(i, 3) + '\n'
+                                elif frame.m_listCtrl1.GetItemText(i, 2) != '' and foha != 1:
                                     foha = 1
-                                    f = f + '<file>\n' + frame.m_listCtrl2.GetItemText(i, 2).replace('#', '##') + '\n'
-                                elif frame.m_listCtrl2.GetItemText(i, 2) != '' and foha == 1:
-                                    f = f + frame.m_listCtrl2.GetItemText(i, 2).replace('#', '##') + '\n'
-                    elif self.m_choice4.GetSelection() == 1:
+                                    f = f + '<file>\n' + frame.m_listCtrl1.GetItemText(i, 2).replace('#', '##') + '\n'
+                                elif frame.m_listCtrl1.GetItemText(i, 2) != '' and foha == 1:
+                                    f = f + frame.m_listCtrl1.GetItemText(i, 2).replace('#', '##') + '\n'
+                    elif self.m_choice1.GetSelection() == 1:
                         f = ''
-                        for i in range(0, frame.m_listCtrl2.GetItemCount()):
-                            if frame.m_listCtrl2.GetItemText(i, 2):
-                                f += frame.m_listCtrl2.GetItemText(i, 2) + ' ' + frame.m_listCtrl2.GetItemText(i, 1) + '\n'
+                        for i in range(0, frame.m_listCtrl1.GetItemCount()):
+                            if frame.m_listCtrl1.GetItemText(i, 2):
+                                f += frame.m_listCtrl1.GetItemText(i, 2) + ' ' + frame.m_listCtrl1.GetItemText(i,
+                                                                                                               1) + '\n'
                             else:
-                                f += '<empty> ' + frame.m_listCtrl2.GetItemText(i, 1) + '\n'
+                                f += '<empty> ' + frame.m_listCtrl1.GetItemText(i, 1) + '\n'
                     file.write(f)
             except Exception as err:
-                toastone = wx.MessageDialog(None, language.s75(type(err).__name__ + ': ' + str(err)), language.s81(),
+                toastone = wx.MessageDialog(None, Lang.error_message(type(err).__name__ + ': ' + str(err)), Lang.title(),
                                             wx.OK | wx.OK_DEFAULT | wx.ICON_ERROR)
-                toastone.SetOKLabel(language.s57())
+                toastone.SetOKLabel(Lang.dlg_btn_ok())
                 if toastone.ShowModal() == wx.ID_OK:  # 如果点击了提示框的确定按钮
                     toastone.Destroy()
             self.SetStatusText('')
 
-    def outputreport(self, event):
-        dlg = wx.FileDialog(self, message=language.s60(),
+    def export( self, event ):
+        dlg = wx.FileDialog(self, message=Lang.filedlg_title_exportresult(),
                             defaultDir='',
                             defaultFile='',
-                            wildcard=language.s33(),
+                            wildcard=Lang.filedlg_wildcard_3(),
                             style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT)
         if dlg.ShowModal() == wx.ID_OK:
             path = dlg.GetPath()
             dlg.Destroy()
-            self.SetStatusText(language.s84() + path)
-            main.export(self, path)
+            self.SetStatusText(Lang.status_exporting(path))
+            self.export_main(path)
             self.SetStatusText('')
 
-    def clear(self, event):
-        global information
-        self.m_listCtrl2.DeleteAllItems()
-        information = []
+    def export_main( self, path ):
+        try:
+            with open(path, 'w', encoding=str(setting['ExportResultEncoding'])) as file:
+                if self.m_choice1.GetSelection() == 0:
+                    file.write(
+                        Lang.list_no() + ',' + Lang.list_groupno() + ',' + Lang.list_file() + ',' + Lang.list_checksum() + '\n')
+                elif self.m_choice1.GetSelection() == 1:
+                    file.write(
+                        Lang.list_no() + ',' + Lang.list_file() + ',' + Lang.list_expected_checksum() + ',' + Lang.list_result() + '\n')
+                for i in range(0, self.m_listCtrl1.GetItemCount()):
+                    for ii in range(0, 4):
+                        if ii == 3:
+                            file.write('"' + self.m_listCtrl1.GetItemText(i, 3) + '"\n')
+                        else:
+                            file.write('"' + self.m_listCtrl1.GetItemText(i, ii) + '",')
+        except Exception as err:
+            toastone = wx.MessageDialog(None, Lang.error_message(type(err).__name__ + ': ' + str(err)), Lang.title(),
+                                        wx.OK | wx.OK_DEFAULT | wx.ICON_ERROR)
+            toastone.SetOKLabel(Lang.dlg_btn_ok())
+            if toastone.ShowModal() == wx.ID_OK:  # 如果点击了提示框的确定按钮
+                toastone.Destroy()
 
-    def work_directory(self, event):
-        dlg = wx.DirDialog(self, message=language.s136(),
+    def right_menu( self, event ):
+        self.m_menuItem14.Enable(True)
+        self.m_menuItem15.Enable(True)
+        self.m_menuItem16.Enable(True)
+        self.m_menuItem17.Enable(True)
+        if self.m_choice1.GetSelection() == 0:
+            if self.m_listCtrl1.GetItemText(self.m_listCtrl1.GetFocusedItem(), 2) == '':
+                self.m_menuItem14.Enable(False)
+                self.m_menuItem16.Enable(False)
+            if self.m_listCtrl1.GetItemText(self.m_listCtrl1.GetFocusedItem(),
+                                            3) == '' or self.m_listCtrl1.GetItemText(self.m_listCtrl1.GetFocusedItem(),
+                                                                                     3) == Lang.str_error():
+                self.m_menuItem17.Enable(False)
+            if self.m_listCtrl1.GetItemText(self.m_listCtrl1.GetFocusedItem(), 2) != '':
+                self.m_menuItem15.Enable(False)
+        elif self.m_choice1.GetSelection() == 1:
+            if self.m_listCtrl1.GetItemText(self.m_listCtrl1.GetFocusedItem(),
+                                            2) == '':
+                self.m_menuItem17.Enable(False)
+        self.PopupMenu(self.m_menu3)
+
+    def clear_list( self, event ):
+        self.m_listCtrl1.DeleteAllItems()
+        self.informations = []
+
+    def work_directory( self, event ):
+        dlg = wx.DirDialog(self, message=Lang.workdirdlg_title(),
                            defaultPath='',
                            style=wx.DD_DEFAULT_STYLE)
         if dlg.ShowModal() == wx.ID_OK:
             os.chdir(dlg.GetPath())
             self.SetStatusText(os.getcwd(), 1)
 
-    def setting(self, event):
-        setting = MyDialog1(None)
-        setting.Show()
+    def open_settings( self, event ):
+        settingdlg = Settings(self)
+        a = settingdlg.ShowModal()
+        if a == wx.ID_OK:
+            settingdlg.apply(None)
+            settingdlg.Destroy()
+        elif a == wx.ID_CANCEL:
+            settingdlg.Destroy()
 
-    def about(self, event):
-        addhash = MyDialog3(None)
-        addhash.Show()
 
-    def rightmenu(self, event):
-        self.m_menuItem13.Enable(True)
-        self.m_menuItem14.Enable(True)
-        self.m_menuItem16.Enable(True)
-        self.m_menuItem17.Enable(True)
-        if self.m_choice4.GetSelection() == 0:
-            if self.m_listCtrl2.GetItemText(self.m_listCtrl2.GetFocusedItem(), 2) == '':
-                self.m_menuItem13.Enable(False)
-                self.m_menuItem16.Enable(False)
-            if self.m_listCtrl2.GetItemText(self.m_listCtrl2.GetFocusedItem(),
-                                            3) == '' or self.m_listCtrl2.GetItemText(self.m_listCtrl2.GetFocusedItem(),
-                                                                                      3) == language.s81():
-                self.m_menuItem14.Enable(False)
-            if self.m_listCtrl2.GetItemText(self.m_listCtrl2.GetFocusedItem(), 2) != '':
-                self.m_menuItem17.Enable(False)
-        elif self.m_choice4.GetSelection() == 1:
-            if self.m_listCtrl2.GetItemText(self.m_listCtrl2.GetFocusedItem(),
-                                            2) == '':
-                self.m_menuItem14.Enable(False)
-        self.PopupMenu(self.m_menu4)
+    def ota( self, event ):
+        otadlg.Show(True)
+        frame.Enable(False)
 
-    def showinformation(self, event):
-        informationdialog = MyDialog6(None)
-        informationdialog.Show()
+    def about( self, event ):
+        aboutdlg = About(self)
+        aboutdlg.ShowModal()
 
-    def editfile(self, event):
-        global information
-        dlg = wx.FileDialog(self, message=language.s87(),
+    def switch_mode( self, event ):
+        if self.m_choice1.GetSelection() != self.mode:
+            if self.m_listCtrl1.GetItemCount():
+                toastone = wx.MessageDialog(None, Lang.switchmode_warning(), Lang.title(),
+                                            wx.YES_NO | wx.NO_DEFAULT | wx.ICON_WARNING)
+                toastone.SetYesNoLabels(Lang.dlg_btn_yes(), Lang.dlg_btn_no())
+                if toastone.ShowModal() == wx.ID_NO:  # 如果点击了提示框的否按钮
+                    toastone.Destroy()
+                    self.m_choice1.SetSelection(self.mode)
+                    return None
+            self.m_listCtrl1.DeleteAllItems()
+            self.m_listCtrl1.RemoveSortIndicator()
+            self.m_listCtrl1.DeleteAllColumns()
+            if self.m_choice1.GetSelection() == 0:
+                self.m_listCtrl1.InsertColumn(0, Lang.list_no())
+                self.m_listCtrl1.InsertColumn(1, Lang.list_groupno())
+                self.m_listCtrl1.InsertColumn(2, Lang.list_file())
+                self.m_listCtrl1.InsertColumn(3, Lang.list_checksum())
+                self.m_listCtrl1.SetColumnWidth(0, GetScaledWidth(self.GetDPI(), 50))  # 设置每一列的宽度
+                self.m_listCtrl1.SetColumnWidth(1, GetScaledWidth(self.GetDPI(), 50))
+                self.m_listCtrl1.SetColumnWidth(2, GetScaledWidth(self.GetDPI(), 425))
+                self.m_listCtrl1.SetColumnWidth(3, GetScaledWidth(self.GetDPI(), 445))
+                self.m_menuItem2.SetItemLabel(Lang.menuitem_addfile() + '\tCtrl+F')
+                self.m_menu1.Insert(3, self.m_menuItem3)
+                #self.m_menuItem2.SetHelp(language.s98())
+                self.m_button1.SetLabel(Lang.btn_addfile())
+                self.m_button1.SetSize(self.m_button1.GetBestSize())
+                self.m_button2.Show(True)
+                self.m_toolBar1.InsertControl(3, self.m_button2)
+                self.m_toolBar1.Realize()
+            elif self.m_choice1.GetSelection() == 1:
+                self.m_listCtrl1.InsertColumn(0, Lang.list_no())
+                self.m_listCtrl1.InsertColumn(1, Lang.list_file())
+                self.m_listCtrl1.InsertColumn(2, Lang.list_expected_checksum())
+                self.m_listCtrl1.InsertColumn(3, Lang.list_result())
+                self.m_listCtrl1.SetColumnWidth(0, GetScaledWidth(self.GetDPI(), 50))  # 设置每一列的宽度
+                self.m_listCtrl1.SetColumnWidth(1, GetScaledWidth(self.GetDPI(), 425))
+                self.m_listCtrl1.SetColumnWidth(2, GetScaledWidth(self.GetDPI(), 425))
+                self.m_listCtrl1.SetColumnWidth(3, GetScaledWidth(self.GetDPI(), 75))
+                self.m_listCtrl1.SetDropTarget(None)
+                self.m_menuItem2.SetItemLabel(Lang.menuitem_additem() + '\tCtrl+F')
+                self.m_menu1.Remove(self.m_menuItem3)
+                #self.m_menuItem2.SetHelp(language.s132())
+                self.m_button1.SetLabel(Lang.btn_additem())
+                self.m_button1.SetSize(self.m_button1.GetBestSize())
+                self.m_button2.Show(False)
+                self.m_toolBar1.RemoveTool(self.m_button2.GetId())
+                self.m_toolBar1.Realize()
+            self.mode = self.m_choice1.GetSelection()
+            fileDrop = FileDrop(self)
+            self.m_listCtrl1.SetDropTarget(fileDrop)
+        return None
+
+
+
+
+    def show_detail( self, event ):
+        text = ''
+        if self.m_choice1.GetSelection() == 0:
+            if self.m_listCtrl1.GetItemText(self.m_listCtrl1.GetFocusedItem(), 2) == '':
+                text += Lang.detailsdlg_file() + Lang.detailsdlg_none() + '\n'
+                text += Lang.detailsdlg_checksum() + self.m_listCtrl1.GetItemText(self.m_listCtrl1.GetFocusedItem(),
+                                                                                  3) + '\n'
+            else:
+                text += Lang.detailsdlg_file() + self.m_listCtrl1.GetItemText(self.m_listCtrl1.GetFocusedItem(),
+                                                                              2) + '\n'
+                if self.m_listCtrl1.GetItemText(self.m_listCtrl1.GetFocusedItem(), 3) == '':
+                    text += Lang.detailsdlg_checksum() + Lang.detailsdlg_none() + '\n'
+                else:
+                    text += Lang.detailsdlg_checksum() + self.m_listCtrl1.GetItemText(self.m_listCtrl1.GetFocusedItem(),
+                                                                                      3) + '\n'
+
+        elif self.m_choice1.GetSelection() == 1:
+            text += Lang.detailsdlg_file() + self.m_listCtrl1.GetItemText(self.m_listCtrl1.GetFocusedItem(), 1) + '\n'
+            if self.m_listCtrl1.GetItemText(self.m_listCtrl1.GetFocusedItem(), 2) == '':
+                text += Lang.detailsdlg_expected_checksum() + Lang.detailsdlg_none() + '\n'
+            else:
+                text += Lang.detailsdlg_expected_checksum() + self.m_listCtrl1.GetItemText(
+                    self.m_listCtrl1.GetFocusedItem(), 2) + '\n'
+            if self.informations[int(self.m_listCtrl1.GetItemText(self.m_listCtrl1.GetFocusedItem(), 0)) - 1][
+                'ActualChecksum']:
+                text += Lang.detailsdlg_actual_checksum() + \
+                        self.informations[int(self.m_listCtrl1.GetItemText(self.m_listCtrl1.GetFocusedItem(), 0)) - 1][
+                            'ActualChecksum'] + '\n'
+            else:
+                text += Lang.detailsdlg_actual_checksum() + Lang.detailsdlg_none() + '\n'
+        if self.informations[int(self.m_listCtrl1.GetItemText(self.m_listCtrl1.GetFocusedItem(), 0)) - 1][
+            'Time'] is None:
+            text += Lang.detailsdlg_time() + Lang.detailsdlg_none() + '\n'
+        else:
+            text += Lang.detailsdlg_time() + timeformat(int(self.informations[
+                int(self.m_listCtrl1.GetItemText(self.m_listCtrl1.GetFocusedItem(), 0)) - 1]['Time'] // 1)) + '\n'
+        if self.informations[int(self.m_listCtrl1.GetItemText(self.m_listCtrl1.GetFocusedItem(), 0)) - 1][
+            'Error'] is None:
+            text += Lang.detailsdlg_error() + Lang.detailsdlg_none() + '\n'
+        else:
+            text += Lang.detailsdlg_error() + self.informations[
+                int(self.m_listCtrl1.GetItemText(self.m_listCtrl1.GetFocusedItem(), 0)) - 1]['Error'] + '\n'
+        detailsdlg = Details(self)
+        detailsdlg.set_value(text)
+        detailsdlg.ShowModal()
+
+
+    def reselect_file( self, event ):
+        dlg = wx.FileDialog(self, message=Lang.filedlg_title_reselect(),
                             defaultDir=os.path.dirname(
-                                self.m_listCtrl2.GetItemText(self.m_listCtrl2.GetFocusedItem(), 2)),
+                                self.m_listCtrl1.GetItemText(self.m_listCtrl1.GetFocusedItem(), 2)),
                             defaultFile='',
-                            wildcard=language.s23(),
+                            wildcard=Lang.filedlg_wildcard_1(),
                             style=wx.FD_OPEN)
         if dlg.ShowModal() == wx.ID_OK:
             fahs = dlg.GetPath()
             dlg.Destroy()
-            if self.m_choice4.GetSelection() == 0:
-                self.m_listCtrl2.SetItem(self.m_listCtrl2.GetFocusedItem(), 1, '')
-                self.m_listCtrl2.SetItem(self.m_listCtrl2.GetFocusedItem(), 2, fahs)
-            elif self.m_choice4.GetSelection() == 1:
-                self.m_listCtrl2.SetItem(self.m_listCtrl2.GetFocusedItem(), 1, fahs)
-                self.m_listCtrl2.SetItemBackgroundColour(self.m_listCtrl2.GetFocusedItem(), wx.Colour(-1, -1, -1))
-            self.m_listCtrl2.SetItem(self.m_listCtrl2.GetFocusedItem(), 3, '')
-            information[int(self.m_listCtrl2.GetItemText(self.m_listCtrl2.GetFocusedItem(), 0))-1] = '/'
+            if self.m_choice1.GetSelection() == 0:
+                self.m_listCtrl1.SetItem(self.m_listCtrl1.GetFocusedItem(), 1, '')
+                self.m_listCtrl1.SetItem(self.m_listCtrl1.GetFocusedItem(), 2, fahs)
+            elif self.m_choice1.GetSelection() == 1:
+                self.m_listCtrl1.SetItem(self.m_listCtrl1.GetFocusedItem(), 1, fahs)
+                self.m_listCtrl1.SetItemBackgroundColour(self.m_listCtrl1.GetFocusedItem(), wx.Colour(-1, -1, -1))
+            self.m_listCtrl1.SetItem(self.m_listCtrl1.GetFocusedItem(), 3, '')
+            self.informations[
+                int(self.m_listCtrl1.GetItemText(self.m_listCtrl1.GetFocusedItem(), 0)) - 1] = self.information_default
             self.sort(None)
 
-    def edithash(self, event):
-        addhash = MyDialog2(None, language.s88())
-        addhash.Show()
+    def edit_checksum( self, event ):
+        dlg = ChecksumDialog(self)
+        dlg.set_mode(True)
+        if self.m_choice1.GetSelection() == 0:
+            dlg.set_checksum(self.m_listCtrl1.GetItemText(self.m_listCtrl1.GetFocusedItem(), 3))
+        else:
+            dlg.set_checksum(self.m_listCtrl1.GetItemText(self.m_listCtrl1.GetFocusedItem(), 2))
+        if dlg.ShowModal() == wx.ID_OK:
+            if self.m_choice1.GetSelection() == 0:
+                self.m_listCtrl1.SetItem(self.m_listCtrl1.GetFocusedItem(), 1, '')
+                if setting['ChecksumUpper']:
+                    self.m_listCtrl1.SetItem(self.m_listCtrl1.GetFocusedItem(), 3,
+                                             dlg.get_checksum().upper())
+                else:
+                    self.m_listCtrl1.SetItem(self.m_listCtrl1.GetFocusedItem(), 3,
+                                             dlg.get_checksum().lower())
+            elif self.m_choice1.GetSelection() == 1:
+                if setting['ChecksumUpper']:
+                    self.m_listCtrl1.SetItem(self.m_listCtrl1.GetFocusedItem(), 2,
+                                             dlg.get_checksum().upper())
+                else:
+                    self.m_listCtrl1.SetItem(self.m_listCtrl1.GetFocusedItem(), 2,
+                                             dlg.get_checksum().lower())
+                self.m_listCtrl1.SetItem(self.m_listCtrl1.GetFocusedItem(), 3, '')
+                self.m_listCtrl1.SetItemBackgroundColour(self.m_listCtrl1.GetFocusedItem(), wx.Colour(-1, -1, -1))
+        dlg.Destroy()
 
-    def copyfile(self, event):
-        if self.m_choice4.GetSelection() == 0:
-            pyperclip.copy(self.m_listCtrl2.GetItemText(self.m_listCtrl2.GetFocusedItem(), 2))
-        elif self.m_choice4.GetSelection() == 1:
-            pyperclip.copy(self.m_listCtrl2.GetItemText(self.m_listCtrl2.GetFocusedItem(), 1))
-        self.SetStatusText(language.s89())
+    def copy_file_address( self, event ):
+        if self.m_choice1.GetSelection() == 0:
+            pyperclip.copy(self.m_listCtrl1.GetItemText(self.m_listCtrl1.GetFocusedItem(), 2))
+        elif self.m_choice1.GetSelection() == 1:
+            pyperclip.copy(self.m_listCtrl1.GetItemText(self.m_listCtrl1.GetFocusedItem(), 1))
 
-    def copyhash(self, event):
-        if self.m_choice4.GetSelection() == 0:
-            pyperclip.copy(self.m_listCtrl2.GetItemText(self.m_listCtrl2.GetFocusedItem(), 3))
-        elif self.m_choice4.GetSelection() == 1:
-            pyperclip.copy(self.m_listCtrl2.GetItemText(self.m_listCtrl2.GetFocusedItem(), 2))
-        self.SetStatusText(language.s89())
+    def copy_checksum( self, event ):
+        if self.m_choice1.GetSelection() == 0:
+            pyperclip.copy(self.m_listCtrl1.GetItemText(self.m_listCtrl1.GetFocusedItem(), 3))
+        elif self.m_choice1.GetSelection() == 1:
+            pyperclip.copy(self.m_listCtrl1.GetItemText(self.m_listCtrl1.GetFocusedItem(), 2))
 
-    def delete(self, event):
-        global information
-        del information[int(self.m_listCtrl2.GetItemText(self.m_listCtrl2.GetFocusedItem(), 0)) - 1]
-        self.m_listCtrl2.DeleteItem(self.m_listCtrl2.GetFocusedItem())
+    def delete_item( self, event ):
+        del self.informations[int(self.m_listCtrl1.GetItemText(self.m_listCtrl1.GetFocusedItem(), 0)) - 1]
+        self.m_listCtrl1.DeleteItem(self.m_listCtrl1.GetFocusedItem())
         listitems = []
-        for i in range(0, self.m_listCtrl2.GetItemCount()):
-            if self.m_listCtrl2.GetItemText(i, 1) == '' and self.m_choice4.GetSelection() == 0:
-                listitems.append([int(self.m_listCtrl2.GetItemText(i, 0)), -1,
-                                  self.m_listCtrl2.GetItemText(i, 2), self.m_listCtrl2.GetItemText(i, 3)])
+        for i in range(0, self.m_listCtrl1.GetItemCount()):
+            if self.m_listCtrl1.GetItemText(i, 1) == '' and self.m_choice1.GetSelection() == 0:
+                listitems.append([int(self.m_listCtrl1.GetItemText(i, 0)), -1,
+                                  self.m_listCtrl1.GetItemText(i, 2), self.m_listCtrl1.GetItemText(i, 3)])
             else:
-                if self.m_choice4.GetSelection() == 0:
-                    listitems.append([int(self.m_listCtrl2.GetItemText(i, 0)), int(self.m_listCtrl2.GetItemText(i, 1)),
-                                      self.m_listCtrl2.GetItemText(i, 2), self.m_listCtrl2.GetItemText(i, 3)])
-                elif self.m_choice4.GetSelection() == 1:
-                    listitems.append([int(self.m_listCtrl2.GetItemText(i, 0)), self.m_listCtrl2.GetItemText(i, 1),
-                                      self.m_listCtrl2.GetItemText(i, 2), self.m_listCtrl2.GetItemText(i, 3)])
+                if self.m_choice1.GetSelection() == 0:
+                    listitems.append([int(self.m_listCtrl1.GetItemText(i, 0)), int(self.m_listCtrl1.GetItemText(i, 1)),
+                                      self.m_listCtrl1.GetItemText(i, 2), self.m_listCtrl1.GetItemText(i, 3)])
+                elif self.m_choice1.GetSelection() == 1:
+                    listitems.append([int(self.m_listCtrl1.GetItemText(i, 0)), self.m_listCtrl1.GetItemText(i, 1),
+                                      self.m_listCtrl1.GetItemText(i, 2), self.m_listCtrl1.GetItemText(i, 3)])
         listitems = sorted(listitems, key=lambda x: x[0],
                            reverse=False)
-        for i in range(0, self.m_listCtrl2.GetItemCount()):
+        for i in range(0, self.m_listCtrl1.GetItemCount()):
             listitems[i][0] = i + 1
-        if self.m_listCtrl2.GetSortIndicator() != -1:
-            listitems = sorted(listitems, key=lambda x: x[self.m_listCtrl2.GetSortIndicator()],
-                               reverse=not self.m_listCtrl2.IsAscendingSortIndicator())
-        if self.m_choice4.GetSelection() == 0:
+        if self.m_listCtrl1.GetSortIndicator() != -1:
+            listitems = sorted(listitems, key=lambda x: x[self.m_listCtrl1.GetSortIndicator()],
+                               reverse=not self.m_listCtrl1.IsAscendingSortIndicator())
+        if self.m_choice1.GetSelection() == 0:
             for i in range(0, len(listitems)):
-                self.m_listCtrl2.SetItem(i, 0, str(listitems[i][0]))
+                self.m_listCtrl1.SetItem(i, 0, str(listitems[i][0]))
                 if listitems[i][1] == -1:
-                    self.m_listCtrl2.SetItem(i, 1, '')
+                    self.m_listCtrl1.SetItem(i, 1, '')
                 else:
-                    self.m_listCtrl2.SetItem(i, 1, str(listitems[i][1]))
-                self.m_listCtrl2.SetItem(i, 2, listitems[i][2])
-                self.m_listCtrl2.SetItem(i, 3, listitems[i][3])
-        elif self.m_choice4.GetSelection() == 1:
+                    self.m_listCtrl1.SetItem(i, 1, str(listitems[i][1]))
+                self.m_listCtrl1.SetItem(i, 2, listitems[i][2])
+                self.m_listCtrl1.SetItem(i, 3, listitems[i][3])
+        elif self.m_choice1.GetSelection() == 1:
             for i in range(0, len(listitems)):
-                self.m_listCtrl2.SetItem(i, 0, str(listitems[i][0]))
+                self.m_listCtrl1.SetItem(i, 0, str(listitems[i][0]))
                 if listitems[i][3] == -1:
-                    self.m_listCtrl2.SetItem(i, 3, '')
-                    self.m_listCtrl2.SetItemBackgroundColour(i, wx.Colour(-1, -1, -1))
+                    self.m_listCtrl1.SetItem(i, 3, '')
+                    self.m_listCtrl1.SetItemBackgroundColour(i, wx.Colour(-1, -1, -1))
                 elif listitems[i][3] == -2:
-                    self.m_listCtrl2.SetItem(i, 3, language.s81())
-                    self.m_listCtrl2.SetItemBackgroundColour(i, wx.Colour(255, 235, 156))  # Yellow
+                    self.m_listCtrl1.SetItem(i, 3, Lang.str_error())
+                    self.m_listCtrl1.SetItemBackgroundColour(i, wx.Colour(255, 235, 156))  # Yellow
                 else:
-                    self.m_listCtrl2.SetItem(i, 3, str(listitems[i][3]))
+                    self.m_listCtrl1.SetItem(i, 3, str(listitems[i][3]))
                     if str(listitems[i][3]) == '1':
-                        self.m_listCtrl2.SetItemBackgroundColour(i, wx.Colour(198, 239, 206))  # Green
+                        self.m_listCtrl1.SetItemBackgroundColour(i, wx.Colour(198, 239, 206))  # Green
                     elif str(listitems[i][3]) == '0':
-                        self.m_listCtrl2.SetItemBackgroundColour(i, wx.Colour(255, 199, 206))  # Red
-                self.m_listCtrl2.SetItem(i, 1, listitems[i][1])
-                self.m_listCtrl2.SetItem(i, 2, listitems[i][2])
+                        self.m_listCtrl1.SetItemBackgroundColour(i, wx.Colour(255, 199, 206))  # Red
+                self.m_listCtrl1.SetItem(i, 1, listitems[i][1])
+                self.m_listCtrl1.SetItem(i, 2, listitems[i][2])
+
+    def MainOnContextMenu( self, event ):
+        self.PopupMenu( self.m_menu3, event.GetPosition() )
 
     def setsort(self, event):
-        if self.m_listCtrl2.GetSortIndicator() == -1 or self.m_listCtrl2.GetSortIndicator() != event.GetColumn():
-            self.m_listCtrl2.ShowSortIndicator(event.GetColumn(), True)
+        if self.m_listCtrl1.GetSortIndicator() == -1 or self.m_listCtrl1.GetSortIndicator() != event.GetColumn():
+            self.m_listCtrl1.ShowSortIndicator(event.GetColumn(), True)
         else:
-            self.m_listCtrl2.ShowSortIndicator(event.GetColumn(), not self.m_listCtrl2.IsAscendingSortIndicator())
+            self.m_listCtrl1.ShowSortIndicator(event.GetColumn(), not self.m_listCtrl1.IsAscendingSortIndicator())
         self.sort(None)
 
     def sort(self, event):
         listitems = []
-        if self.m_listCtrl2.GetSortIndicator() != -1:
-            if self.m_choice4.GetSelection() == 0:
-                for i in range(0, self.m_listCtrl2.GetItemCount()):
-                    if self.m_listCtrl2.GetItemText(i, 1) == '':
-                        listitems.append([int(self.m_listCtrl2.GetItemText(i, 0)), -1,
-                                          self.m_listCtrl2.GetItemText(i, 2), self.m_listCtrl2.GetItemText(i, 3)])
+        if self.m_listCtrl1.GetSortIndicator() != -1:
+            if self.m_choice1.GetSelection() == 0:
+                for i in range(0, self.m_listCtrl1.GetItemCount()):
+                    if self.m_listCtrl1.GetItemText(i, 1) == '':
+                        listitems.append([int(self.m_listCtrl1.GetItemText(i, 0)), -1,
+                                          self.m_listCtrl1.GetItemText(i, 2), self.m_listCtrl1.GetItemText(i, 3)])
                     else:
                         listitems.append(
-                            [int(self.m_listCtrl2.GetItemText(i, 0)), int(self.m_listCtrl2.GetItemText(i, 1)),
-                             self.m_listCtrl2.GetItemText(i, 2), self.m_listCtrl2.GetItemText(i, 3)])
-                listitems = sorted(listitems, key=lambda x: x[self.m_listCtrl2.GetSortIndicator()],
-                                   reverse=not self.m_listCtrl2.IsAscendingSortIndicator())
+                            [int(self.m_listCtrl1.GetItemText(i, 0)), int(self.m_listCtrl1.GetItemText(i, 1)),
+                             self.m_listCtrl1.GetItemText(i, 2), self.m_listCtrl1.GetItemText(i, 3)])
+                listitems = sorted(listitems, key=lambda x: x[self.m_listCtrl1.GetSortIndicator()],
+                                   reverse=not self.m_listCtrl1.IsAscendingSortIndicator())
                 for i in range(0, len(listitems)):
-                    self.m_listCtrl2.SetItem(i, 0, str(listitems[i][0]))
+                    self.m_listCtrl1.SetItem(i, 0, str(listitems[i][0]))
                     if listitems[i][1] == -1:
-                        self.m_listCtrl2.SetItem(i, 1, '')
+                        self.m_listCtrl1.SetItem(i, 1, '')
                     else:
-                        self.m_listCtrl2.SetItem(i, 1, str(listitems[i][1]))
-                    self.m_listCtrl2.SetItem(i, 2, listitems[i][2])
-                    self.m_listCtrl2.SetItem(i, 3, listitems[i][3])
-            elif self.m_choice4.GetSelection() == 1:
-                for i in range(0, self.m_listCtrl2.GetItemCount()):
-                    if self.m_listCtrl2.GetItemText(i, 3) == '':
+                        self.m_listCtrl1.SetItem(i, 1, str(listitems[i][1]))
+                    self.m_listCtrl1.SetItem(i, 2, listitems[i][2])
+                    self.m_listCtrl1.SetItem(i, 3, listitems[i][3])
+            elif self.m_choice1.GetSelection() == 1:
+                for i in range(0, self.m_listCtrl1.GetItemCount()):
+                    if self.m_listCtrl1.GetItemText(i, 3) == '':
                         listitems.append(
-                            [int(self.m_listCtrl2.GetItemText(i, 0)), self.m_listCtrl2.GetItemText(i, 1),
-                             self.m_listCtrl2.GetItemText(i, 2), -1])
-                    elif self.m_listCtrl2.GetItemText(i, 3) == language.s81():
+                            [int(self.m_listCtrl1.GetItemText(i, 0)), self.m_listCtrl1.GetItemText(i, 1),
+                             self.m_listCtrl1.GetItemText(i, 2), -1])
+                    elif self.m_listCtrl1.GetItemText(i, 3) == Lang.str_error():
                         listitems.append(
-                            [int(self.m_listCtrl2.GetItemText(i, 0)), self.m_listCtrl2.GetItemText(i, 1),
-                             self.m_listCtrl2.GetItemText(i, 2), -2])
+                            [int(self.m_listCtrl1.GetItemText(i, 0)), self.m_listCtrl1.GetItemText(i, 1),
+                             self.m_listCtrl1.GetItemText(i, 2), -2])
                     else:
-                        listitems.append([int(self.m_listCtrl2.GetItemText(i, 0)), self.m_listCtrl2.GetItemText(i, 1),
-                                          self.m_listCtrl2.GetItemText(i, 2), int(self.m_listCtrl2.GetItemText(i, 3))])
-                listitems = sorted(listitems, key=lambda x: x[self.m_listCtrl2.GetSortIndicator()],
-                                   reverse=not self.m_listCtrl2.IsAscendingSortIndicator())
+                        listitems.append([int(self.m_listCtrl1.GetItemText(i, 0)), self.m_listCtrl1.GetItemText(i, 1),
+                                          self.m_listCtrl1.GetItemText(i, 2), int(self.m_listCtrl1.GetItemText(i, 3))])
+                listitems = sorted(listitems, key=lambda x: x[self.m_listCtrl1.GetSortIndicator()],
+                                   reverse=not self.m_listCtrl1.IsAscendingSortIndicator())
                 for i in range(0, len(listitems)):
-                    self.m_listCtrl2.SetItem(i, 0, str(listitems[i][0]))
+                    self.m_listCtrl1.SetItem(i, 0, str(listitems[i][0]))
                     if listitems[i][3] == -1:
-                        self.m_listCtrl2.SetItem(i, 3, '')
-                        self.m_listCtrl2.SetItemBackgroundColour(i, wx.Colour(-1, -1, -1))
+                        self.m_listCtrl1.SetItem(i, 3, '')
+                        self.m_listCtrl1.SetItemBackgroundColour(i, wx.Colour(-1, -1, -1))
                     elif listitems[i][3] == -2:
-                        self.m_listCtrl2.SetItem(i, 3, language.s81())
-                        self.m_listCtrl2.SetItemBackgroundColour(i, wx.Colour(255, 235, 156))    #Yellow
+                        self.m_listCtrl1.SetItem(i, 3, Lang.str_error())
+                        self.m_listCtrl1.SetItemBackgroundColour(i, wx.Colour(255, 235, 156))  # Yellow
                     else:
-                        self.m_listCtrl2.SetItem(i, 3, str(listitems[i][3]))
+                        self.m_listCtrl1.SetItem(i, 3, str(listitems[i][3]))
                         if str(listitems[i][3]) == '1':
-                            self.m_listCtrl2.SetItemBackgroundColour(i, wx.Colour(198, 239, 206))    #Green
+                            self.m_listCtrl1.SetItemBackgroundColour(i, wx.Colour(198, 239, 206))  # Green
                         elif str(listitems[i][3]) == '0':
-                            self.m_listCtrl2.SetItemBackgroundColour(i, wx.Colour(255, 199, 206))    #Red
-                    self.m_listCtrl2.SetItem(i, 1, listitems[i][1])
-                    self.m_listCtrl2.SetItem(i, 2, listitems[i][2])
-
-        #self.m_listCtrl2.IsAscendingSortIndicator()
-        #self.m_listCtrl2.GetSortIndicator()
-
-    def switchmode(self, event):
-        if self.m_choice4.GetSelection() != self.mode:
-            if self.m_listCtrl2.GetItemCount():
-                toastone = wx.MessageDialog(None, language.s137(), language.s1(),
-                                            wx.YES_NO | wx.NO_DEFAULT | wx.ICON_WARNING)
-                toastone.SetYesNoLabels(language.s63(), language.s64())
-                if toastone.ShowModal() == wx.ID_NO:  # 如果点击了提示框的否按钮
-                    toastone.Destroy()
-                    self.m_choice4.SetSelection(self.mode)
-                    return None
-            self.m_listCtrl2.DeleteAllItems()
-            self.m_listCtrl2.RemoveSortIndicator()
-            self.m_listCtrl2.DeleteAllColumns()
-            if self.m_choice4.GetSelection() == 0:
-                self.m_listCtrl2.InsertColumn(0, language.s17())
-                self.m_listCtrl2.InsertColumn(1, language.s18())
-                self.m_listCtrl2.InsertColumn(2, language.s19())
-                self.m_listCtrl2.InsertColumn(3, language.s20())
-                self.m_listCtrl2.SetColumnWidth(0, int('%.0f' % (50 * self.GetDPI()[0] / 96)))  # 设置每一列的宽度
-                self.m_listCtrl2.SetColumnWidth(1, int('%.0f' % (50 * self.GetDPI()[0] / 96)))
-                self.m_listCtrl2.SetColumnWidth(2, int('%.0f' % (425 * self.GetDPI()[0] / 96)))
-                self.m_listCtrl2.SetColumnWidth(3, int('%.0f' % (445 * self.GetDPI()[0] / 96)))
-                fileDrop = FileDrop()
-                self.m_listCtrl2.SetDropTarget(fileDrop)
-                self.m_menuItem2.SetItemLabel(language.s3() + '\tCtrl+F')
-                self.m_menu3.Insert(3, self.m_menuItem8)
-                self.m_menuItem2.SetHelp(language.s98())
-                self.m_button1.SetLabel(language.s14())
-                self.m_button6.Show(True)
-                self.m_toolBar1.InsertControl(3, self.m_button6)
-                self.m_toolBar1.Realize()
-            elif self.m_choice4.GetSelection() == 1:
-                self.m_listCtrl2.InsertColumn(0, language.s17())
-                self.m_listCtrl2.InsertColumn(1, language.s19())
-                self.m_listCtrl2.InsertColumn(2, language.s134())
-                self.m_listCtrl2.InsertColumn(3, language.s135())
-                self.m_listCtrl2.SetColumnWidth(0, int('%.0f' % (50 * self.GetDPI()[0] / 96)))  # 设置每一列的宽度
-                self.m_listCtrl2.SetColumnWidth(1, int('%.0f' % (425 * self.GetDPI()[0] / 96)))
-                self.m_listCtrl2.SetColumnWidth(2, int('%.0f' % (425 * self.GetDPI()[0] / 96)))
-                self.m_listCtrl2.SetColumnWidth(3, int('%.0f' % (75 * self.GetDPI()[0] / 96)))
-                self.m_listCtrl2.SetDropTarget(None)
-                self.m_menuItem2.SetItemLabel(language.s131() + '\tCtrl+F')
-                self.m_menu3.Remove(self.m_menuItem8)
-                self.m_menuItem2.SetHelp(language.s132())
-                self.m_button1.SetLabel(language.s133())
-                self.m_button6.Show(False)
-                self.m_toolBar1.RemoveTool(self.m_button6.GetId())
-                self.m_toolBar1.Realize()
-            self.mode = self.m_choice4.GetSelection()
-        return None
-
-    def getupdate(self, event):
-        #updatedialog = MyDialog7(None)
-        updatedialog.Show()
-        self.Enable(False)
+                            self.m_listCtrl1.SetItemBackgroundColour(i, wx.Colour(255, 199, 206))  # Red
+                    self.m_listCtrl1.SetItem(i, 1, listitems[i][1])
+                    self.m_listCtrl1.SetItem(i, 2, listitems[i][2])
 
 
-class MyDialog1(wx.Dialog):
-
+class Settings(UI.Settings):
     def __init__(self, parent):
-        global command, export, isexport, languagelist
-        wx.Dialog.__init__(self, parent, id=wx.ID_ANY, title=language.s24(), pos=wx.DefaultPosition,
-                           size=wx.Size(600, 400),
-                           style=wx.DEFAULT_DIALOG_STYLE)
-        self.SetSize(wx.Size(int('%.0f' % (600 * self.GetDPI()[0] / 96)),
-                                        int('%.0f' % (400 * self.GetDPI()[0] / 96))))
-        main.Disable(frame)
-
-        self.SetSizeHints(wx.Size(int('%.0f' % (600 * self.GetDPI()[0] / 96)),
-                                  int('%.0f' % (400 * self.GetDPI()[0] / 96))),
-                          wx.Size(int('%.0f' % (600 * self.GetDPI()[0] / 96)),
-                                  int('%.0f' % (400 * self.GetDPI()[0] / 96))))
-
-        bSizer5 = wx.BoxSizer(wx.VERTICAL)
-
-        self.m_listbook1 = wx.Listbook(self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.LB_DEFAULT)
-        list_ctrl = self.m_listbook1.GetListView()
-        list_ctrl.SetColumnWidth(0, int('%.0f' % (80 * self.GetDPI()[0] / 96)))
-        self.m_panel1 = wx.Panel(self.m_listbook1, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.TAB_TRAVERSAL)
-        bSizer7 = wx.BoxSizer(wx.VERTICAL)
-
-        sbSizer6 = wx.StaticBoxSizer(wx.StaticBox(self.m_panel1, wx.ID_ANY, language.s148()), wx.VERTICAL)
-
-        gSizer8 = wx.GridSizer(0, 2, 0, 0)
-
-        self.m_staticText20 = wx.StaticText(sbSizer6.GetStaticBox(), wx.ID_ANY, language.s149(), wx.DefaultPosition,
-                                            wx.DefaultSize, 0)
-        self.m_staticText20.Wrap(-1)
-
-        gSizer8.Add(self.m_staticText20, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
-
-        m_choice5Choices = language.s130()
-        self.m_choice5 = wx.Choice(sbSizer6.GetStaticBox(), wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize,
-                                   m_choice5Choices, 0)
-        self.m_choice5.SetSelection(setting['DefaultCheckMode'])
-        gSizer8.Add(self.m_choice5, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_RIGHT, 5)
-
-        sbSizer6.Add(gSizer8, 1, wx.EXPAND, 5)
-
-        bSizer7.Add(sbSizer6, 0, wx.EXPAND, 5)
-
-        sbSizer1 = wx.StaticBoxSizer(wx.StaticBox(self.m_panel1, wx.ID_ANY, language.s25()), wx.VERTICAL)
-
-        self.m_staticText10 = wx.StaticText(sbSizer1.GetStaticBox(), wx.ID_ANY, language.s90(), wx.DefaultPosition,
-                                            wx.DefaultSize, 0)
-        self.m_staticText10.Wrap(-1)
-
-        sbSizer1.Add(self.m_staticText10, 0, wx.ALL, 5)
-
-        gSizer4 = wx.GridSizer(2, 4, 0, 0)
-
-        self.m_radioBtn1 = wx.RadioButton(sbSizer1.GetStaticBox(), wx.ID_ANY, language.s26(), wx.DefaultPosition,
-                                          wx.DefaultSize, wx.RB_GROUP)
-        self.m_radioBtn1.SetValue(True)
-        gSizer4.Add(self.m_radioBtn1, 0, wx.ALL, 5)
-
-        self.m_radioBtn2 = wx.RadioButton(sbSizer1.GetStaticBox(), wx.ID_ANY, language.s27(), wx.DefaultPosition,
-                                          wx.DefaultSize, 0)
-        gSizer4.Add(self.m_radioBtn2, 0, wx.ALL, 5)
-
-        self.m_radioBtn3 = wx.RadioButton(sbSizer1.GetStaticBox(), wx.ID_ANY, language.s28(), wx.DefaultPosition,
-                                          wx.DefaultSize, 0)
-        gSizer4.Add(self.m_radioBtn3, 0, wx.ALL, 5)
-
-        self.m_radioBtn4 = wx.RadioButton(sbSizer1.GetStaticBox(), wx.ID_ANY, language.s29(), wx.DefaultPosition,
-                                          wx.DefaultSize, 0)
-        gSizer4.Add(self.m_radioBtn4, 0, wx.ALL, 5)
-
-        self.m_textCtrl4 = wx.TextCtrl(sbSizer1.GetStaticBox(), wx.ID_ANY, wx.EmptyString, wx.DefaultPosition,
-                                       wx.Size(int('%.0f' % (450 * self.GetDPI()[0] / 96)), -1), 0)
-        self.m_textCtrl4.SetValue(command)
-        if command == '':
-            self.m_radioBtn1.SetValue(True)
-        elif command == 'shutdown -s -t 0':
-            self.m_radioBtn2.SetValue(True)
-        elif command == 'shutdown -r -t 0':
-            self.m_radioBtn3.SetValue(True)
-        else:
-            self.m_radioBtn4.SetValue(True)
-        gSizer4.Add(self.m_textCtrl4, 0, wx.ALL, 5)
-
-        sbSizer1.Add(gSizer4, 1, wx.EXPAND, 5)
-
-        bSizer7.Add(sbSizer1, 0, wx.EXPAND, 5)
-
-        sbSizer7 = wx.StaticBoxSizer(wx.StaticBox(self.m_panel1, wx.ID_ANY, language.s30()), wx.VERTICAL)
-
-        self.m_checkBox2 = wx.CheckBox(sbSizer7.GetStaticBox(), wx.ID_ANY, language.s31(), wx.DefaultPosition,
-                                       wx.DefaultSize, 0)
-        self.m_checkBox2.SetValue(isexport)
-        sbSizer7.Add(self.m_checkBox2, 0, wx.ALL, 5)
-
-        self.m_filePicker2 = wx.FilePickerCtrl(sbSizer7.GetStaticBox(), wx.ID_ANY, wx.EmptyString, language.s32(),
-                                               language.s33(),
-                                               wx.DefaultPosition,
-                                               wx.Size(int('%.0f' % (450 * self.GetDPI()[0] / 96)), -1),
-                                               wx.FLP_SAVE | wx.FLP_OVERWRITE_PROMPT | wx.FLP_SMALL | wx.FLP_USE_TEXTCTRL)
-        if not isexport:
-            self.m_filePicker2.Enable(False)
-
-        self.m_filePicker2.SetPath(export)
-
-        sbSizer7.Add(self.m_filePicker2, 0, wx.ALL, 5)
-        bSizer7.Add(sbSizer7, 0, wx.EXPAND, 5)
-
-        self.m_panel1.SetSizer(bSizer7)
-        self.m_panel1.Layout()
-        bSizer7.Fit(self.m_panel1)
-        self.m_listbook1.AddPage(self.m_panel1, language.s34(), True)
-
-        self.m_panel3 = wx.Panel(self.m_listbook1, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.TAB_TRAVERSAL)
-        bSizer12 = wx.BoxSizer(wx.VERTICAL)
-
-        sbSizer4 = wx.StaticBoxSizer(wx.StaticBox(self.m_panel3, wx.ID_ANY, language.s106()), wx.VERTICAL)
-
-        gSizer5 = wx.GridSizer(0, 2, 0, 0)
-
-        self.m_staticText12 = wx.StaticText(sbSizer4.GetStaticBox(), wx.ID_ANY, language.s107(),
-                                            wx.DefaultPosition, wx.DefaultSize, 0)
-        self.m_staticText12.Wrap(-1)
-
-        gSizer5.Add(self.m_staticText12, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
-
-        m_choice2Choices = ['ANSI', 'ASCII', 'BIG5', 'BIG5HKSCS', 'CP037', 'CP273', 'CP424', 'CP437', 'CP500', 'CP720',
-                             'CP737', 'CP775', 'CP850', 'CP852', 'CP855', 'CP856', 'CP857', 'CP858', 'CP860', 'CP861',
-                             'CP862', 'CP863', 'CP864', 'CP865', 'CP866', 'CP869', 'CP874', 'CP875', 'CP932', 'CP949',
-                             'CP950', 'CP1006', 'CP1026', 'CP1125', 'CP1140', 'CP1250', 'CP1251', 'CP1252', 'CP1253',
-                             'CP1254', 'CP1255', 'CP1256', 'CP1257', 'CP1258', 'EUC_JP', 'EUC_JIS_2004', 'EUC_JISX0213',
-                             'EUC_KR', 'GB2312', 'GBK', 'GB18030', 'HZ', 'ISO2022_JP', 'ISO2022_JP_1', 'ISO2022_JP_2',
-                             'ISO2022_JP_2004', 'ISO2022_JP_3', 'ISO2022_JP_EXT', 'ISO2022_KR', 'LATIN_1', 'ISO8859_2',
-                             'ISO8859_3', 'ISO8859_4', 'ISO8859_5', 'ISO8859_6', 'ISO8859_7', 'ISO8859_8', 'ISO8859_9',
-                             'ISO8859_10', 'ISO8859_11', 'ISO8859_13', 'ISO8859_14', 'ISO8859_15', 'ISO8859_16',
-                             'JOHAB', 'KOI8_R', 'KOI8_T', 'KOI8_U', 'KZ1048', 'MAC_CYRILLIC', 'MAC_GREEK',
-                             'MAC_ICELAND', 'MAC_LATIN2', 'MAC_ROMAN', 'MAC_TURKISH', 'OEM', 'PTCP154', 'SHIFT_JIS',
-                             'SHIFT_JIS_2004', 'SHIFT_JISX0213', 'UTF_32', 'UTF_32_BE', 'UTF_32_LE', 'UTF_16',
-                             'UTF_16_BE', 'UTF_16_LE', 'UTF_7', 'UTF_8', 'UTF_8_SIG']
-        self.m_choice2 = wx.Choice(sbSizer4.GetStaticBox(), wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize,
-                                   m_choice2Choices, 0)
-        if find_encoding_key(setting['SaveTaskEncoding']) not in m_choice2Choices:
-            self.m_choice2.SetSelection(m_choice2Choices.index('UTF_8'))
-            setting['SaveTaskEncoding'] = 'UTF_8'
-        else:
-            self.m_choice2.SetSelection(m_choice2Choices.index(find_encoding_key(setting['SaveTaskEncoding'])))
-        gSizer5.Add(self.m_choice2, 0, wx.ALL | wx.ALIGN_RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
-
-        sbSizer4.Add(gSizer5, 1, wx.EXPAND, 5)
-
-        bSizer12.Add(sbSizer4, 0, wx.EXPAND, 5)
-
-        sbSizer5 = wx.StaticBoxSizer(wx.StaticBox(self.m_panel3, wx.ID_ANY, language.s108()), wx.VERTICAL)
-
-        gSizer6 = wx.GridSizer(0, 2, 0, 0)
-
-        self.m_staticText13 = wx.StaticText(sbSizer5.GetStaticBox(), wx.ID_ANY, language.s109(),
-                                            wx.DefaultPosition, wx.DefaultSize, 0)
-        self.m_staticText13.Wrap(-1)
-
-        gSizer6.Add(self.m_staticText13, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
-
-        m_choice3Choices = m_choice2Choices
-        self.m_choice3 = wx.Choice(sbSizer5.GetStaticBox(), wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize,
-                                   m_choice3Choices, 0)
-        if find_encoding_key(setting['ExportResultEncoding']) not in m_choice3Choices:
-            self.m_choice3.SetSelection(m_choice3Choices.index('ANSI'))
-            setting['ExportResultEncoding'] = 'ANSI'
-        else:
-            self.m_choice3.SetSelection(m_choice3Choices.index(find_encoding_key(setting['ExportResultEncoding'])))
-        with open(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'Setting.json'), 'w',
-                  encoding='utf-8') as settingfile:
-            settingfile.write(json.dumps(setting))
-        gSizer6.Add(self.m_choice3, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_RIGHT, 5)
-
-        sbSizer5.Add(gSizer6, 1, wx.EXPAND, 5)
-
-        bSizer12.Add(sbSizer5, 0, wx.EXPAND, 5)
-
-        self.m_button7 = wx.Button(self.m_panel3, wx.ID_ANY, language.s110(), wx.DefaultPosition, wx.DefaultSize, 0)
-        bSizer12.Add(self.m_button7, 0, wx.ALL | wx.ALIGN_RIGHT, 5)
-
-        self.m_panel3.SetSizer(bSizer12)
-        self.m_panel3.Layout()
-        bSizer12.Fit(self.m_panel3)
-        self.m_listbook1.AddPage(self.m_panel3, language.s111(), False)
-
-        self.m_panel2 = wx.Panel(self.m_listbook1, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.TAB_TRAVERSAL)
-        bSizer6 = wx.BoxSizer(wx.VERTICAL)
-
-        sbSizer3 = wx.StaticBoxSizer(wx.StaticBox(self.m_panel2, wx.ID_ANY, language.s35()), wx.VERTICAL)
-
-        gSizer3 = wx.GridSizer(0, 6, 0, 0)
-
-        self.m_button2 = wx.Button(sbSizer3.GetStaticBox(), wx.ID_ANY, language.s37(), wx.DefaultPosition, wx.DefaultSize,
-                                   0)
-
-        gSizer3.Add(self.m_button2, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
-
-        sbSizer3.Add(gSizer3, 0, wx.EXPAND, 5)
-        '''
-        languagelist = glob.glob('language_*.py')
-        for i in range(len(languagelist)):
-            languagelist[i] = languagelist[i].split(".")[0]
-        code = 'def get():\n    list = []\n'
-        for i in range(0, len(languagelist)):
-            code = code + '    import ' + languagelist[i] + '\n    list.append(' + languagelist[i] + '.LANGUAGE[1])\n'
-        code = code + '    return list'
-        with open(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'getlanguagelist.py'), 'w',
-                  encoding='utf-8') as f:
-            f.write(code)
-        import getlanguagelist
-        reload(getlanguagelist)
-        displanguagelist = getlanguagelist.get()
-
-        print(languagelist)
-        print(displanguagelist)
-        '''
-        languagelist = []
-        for i in languagedic.values():
-            if i[0] not in languagelist:
-                languagelist.append(i[0])
-        displanguagelist = []
-        for i in languagedic.values():
-            if i[1] not in displanguagelist:
-                displanguagelist.append(i[1])
-        m_listBox2Choices = [language.s21()]
-        m_listBox2Choices.extend(displanguagelist)
-        self.m_listBox2 = wx.ListBox(sbSizer3.GetStaticBox(), wx.ID_ANY, wx.DefaultPosition, wx.Size(480, 290),
-                                     m_listBox2Choices, wx.LB_NEEDED_SB | wx.LB_SINGLE)
-        sbSizer3.Add(self.m_listBox2, 1, wx.ALL | wx.EXPAND, 5)
-
+        UI.Settings.__init__(self, parent)
+        self.SetSize(GetScaledSize(self.GetDPI(), self.GetSize()))
+        self.Centre()
+        self.m_sdbSizer1Apply.Enable(False)
+        if platform.system() == 'Windows':
+            self.m_listbook1.GetListView().SetColumnWidth(0, GetScaledWidth(self.GetDPI(), 80))
+        if platform.system() != 'Windows':
+            self.m_radioBtn1.Show(False)
+            self.m_radioBtn2.Show(False)
+            self.m_radioBtn3.Show(False)
+            self.m_radioBtn4.Show(False)
+            self.m_scrolledWindow1.Layout()
+        self.encoding_choices = encodingchoices
+        self.m_choice4.SetItems(self.encoding_choices)
+        self.m_choice5.SetItems(self.encoding_choices)
+        self.m_choice3.SetSelection(setting['DefaultCheckMode'])
+        self.m_checkBox2.SetValue(setting['ChecksumUpper'])
+        if setting['SaveTaskEncoding'] not in self.encoding_choices:
+            setting['SaveTaskEncoding'] = str(find_encoding_key(str(setting['SaveTaskEncoding'])))
+            SaveSetting(setting)
+        self.m_checkBox3.SetValue(setting['CompatibleWithOldTask'])
+        if setting['ExportResultEncoding'] not in self.encoding_choices:
+            setting['ExportResultEncoding'] = str(find_encoding_key(str(setting['ExportResultEncoding'])))
+            SaveSetting(setting)
+        self.m_choice4.SetSelection(self.encoding_choices.index(setting['SaveTaskEncoding']))
+        self.m_choice5.SetSelection(self.encoding_choices.index(setting['ExportResultEncoding']))
+        self.m_textCtrl1.SetValue(frame.aftercmd)
+        self.run_command_edited(None, False)
+        self.m_textCtrl4.SetSize(wx.Size(GetScaledWidth(self.GetDPI(), 425), -1))
+        self.m_textCtrl4.SetValue(frame.aftersave)
+        self.m_checkBox1.SetValue(bool(self.m_textCtrl4.GetValue()))
+        self.ascr_check(None, False)
+        self.m_listBox1.SetItems([Lang.settingdlg_language_auto()])
+        self.m_listBox1.AppendItems(list(languagelist.values()))
         if setting['Language'] == 'Auto':
-            self.m_listBox2.SetSelection(0)
+            self.m_listBox1.SetSelection(0)
         else:
-            self.m_listBox2.SetSelection(languagelist.index(setting['Language']) + 1)
+            self.m_listBox1.SetSelection(self.m_listBox1.FindString(
+                languagelist[os.path.join(GetProgPath(), 'Languages', str(setting['Language']))]))
+        if frame.change_lang_later_warn:
+            self.m_infoCtrl1.ShowMessage(Lang.settingdlg_warning_changelang_later(frame.change_lang_later_warn),
+                                         wx.ICON_INFORMATION)
 
-        bSizer6.Add(sbSizer3, 1, wx.EXPAND, 5)
+        self.change_lang()
 
-        self.m_panel2.SetSizer(bSizer6)
-        self.m_panel2.Layout()
-        bSizer6.Fit(self.m_panel2)
-        self.m_listbook1.AddPage(self.m_panel2, language.s40(), False)
+        self.m_textCtrl1.Bind(wx.EVT_TEXT, self.run_command_edited)
+        self.m_choice3.Bind(wx.EVT_CHOICE, self.setchanged)
+        self.m_checkBox2.Bind(wx.EVT_CHECKBOX, self.setchanged)
+        self.m_choice4.Bind(wx.EVT_CHOICE, self.setchanged)
+        self.m_checkBox3.Bind(wx.EVT_CHECKBOX, self.setchanged)
+        self.m_choice5.Bind(wx.EVT_CHOICE, self.setchanged)
+        self.m_listBox1.Bind(wx.EVT_LISTBOX, self.setchanged)
 
-        bSizer5.Add(self.m_listbook1, 1, wx.EXPAND | wx.ALL, 5)
-
-        self.SetSizer(bSizer5)
+    def change_lang(self):
+        self.SetTitle(Lang.settingdlg_title())
+        self.sbSizer1.GetStaticBox().SetLabel(Lang.settingdlg_staticbox_starting())
+        self.m_staticText1.SetLabel(Lang.settingdlg_default_checkmode())
+        self.m_choice3.SetString(0, Lang.choice_mode1())
+        self.m_choice3.SetString(1, Lang.choice_mode2())
+        self.m_choice3.SetSize(self.m_choice3.GetBestSize())
+        self.sbSizer1.Layout()
+        self.sbSizer2.GetStaticBox().SetLabel(Lang.settingdlg_operation_after_completion())
+        self.m_staticText2.SetLabel(Lang.settingdlg_oac_run_command())
+        self.m_radioBtn1.SetLabel(Lang.settingdlg_oac_run_command_none())
+        self.m_radioBtn1.SetSize(self.m_radioBtn1.GetBestSize())
+        self.m_radioBtn2.SetLabel(Lang.settingdlg_oac_run_command_shutdown())
+        self.m_radioBtn2.SetSize(self.m_radioBtn2.GetBestSize())
+        self.m_radioBtn3.SetLabel(Lang.settingdlg_oac_run_command_reboot())
+        self.m_radioBtn3.SetSize(self.m_radioBtn3.GetBestSize())
+        self.m_radioBtn4.SetLabel(Lang.settingdlg_oac_run_command_custom())
+        self.m_radioBtn4.SetSize(self.m_radioBtn4.GetBestSize())
+        self.sbSizer3.GetStaticBox().SetLabel(Lang.settingdlg_staticbox_ascr())
+        self.m_checkBox1.SetLabel(Lang.settingdlg_checkbox_ascr())
+        self.m_checkBox1.SetSize(self.m_checkBox1.GetBestSize())
+        self.sbSizer4.GetStaticBox().SetLabel(Lang.settingdlg_staticbox_other())
+        self.m_checkBox2.SetLabel(Lang.settingdlg_other_uppercase())
+        self.m_checkBox2.SetSize(self.m_checkBox2.GetBestSize())
+        self.m_listbook1.SetPageText(0, Lang.settingdlg_page_routine())
+        self.sbSizer5.GetStaticBox().SetLabel(Lang.settingdlg_staticbox_tasklist())
+        self.m_staticText3.SetLabel(Lang.settingdlg_tasklist_encoding())
+        self.m_checkBox3.SetLabel(Lang.settingdlg_checkbox_cwov())
+        self.m_checkBox3.SetSize(self.m_checkBox3.GetBestSize())
+        self.sbSizer6.GetStaticBox().SetLabel(Lang.settingdlg_staticbox_checkresult())
+        self.m_staticText4.SetLabel(Lang.settingdlg_checkresult_encoding())
+        self.m_button4.SetLabel(Lang.settingdlg_btn_restore())
+        self.m_button4.SetSize(self.m_button4.GetBestSize())
+        self.m_scrolledWindow2.Layout()
+        self.m_listbook1.SetPageText(1, Lang.settingdlg_page_files())
+        self.sbSizer7.GetStaticBox().SetLabel(Lang.settingdlg_staticbox_language_setting())
+        self.m_listBox1.SetString(0, Lang.settingdlg_language_auto())
+        self.m_listbook1.SetPageText(2, Lang.settingdlg_page_language())
+        self.m_sdbSizer1OK.SetLabel(Lang.dlg_btn_ok())
+        self.m_sdbSizer1OK.SetSize(self.m_sdbSizer1OK.GetBestSize())
+        self.m_sdbSizer1Cancel.SetLabel(Lang.dlg_btn_cancel())
+        self.m_sdbSizer1Cancel.SetSize(self.m_sdbSizer1Cancel.GetBestSize())
+        self.m_sdbSizer1Apply.SetLabel(Lang.dlg_btn_apply())
+        self.m_sdbSizer1Apply.SetSize(self.m_sdbSizer1Apply.GetBestSize())
+        self.m_scrolledWindow1.Layout()
+        self.m_scrolledWindow2.Layout()
+        self.m_scrolledWindow3.Layout()
         self.Layout()
 
-        self.Centre(wx.BOTH)
-
-        # Connect Events
-        self.Bind(wx.EVT_CLOSE, self.close)
-        self.m_button7.Bind(wx.EVT_BUTTON, self.recover)
-        self.m_radioBtn1.Bind(wx.EVT_RADIOBUTTON, self.none)
-        self.m_radioBtn2.Bind(wx.EVT_RADIOBUTTON, self.shutdown)
-        self.m_radioBtn3.Bind(wx.EVT_RADIOBUTTON, self.reboot)
-        self.m_radioBtn4.Bind(wx.EVT_RADIOBUTTON, self.custom)
-        self.m_textCtrl4.Bind(wx.EVT_TEXT, self.getcmd)
-        self.m_checkBox2.Bind(wx.EVT_CHECKBOX, self.autosave)
-        self.m_button2.Bind(wx.EVT_BUTTON, self.changelanguage)
-        self.m_listBox2.Bind(wx.EVT_LISTBOX_DCLICK, self.changelanguage)
-
-    def __del__(self):
-        pass
-
-    # Virtual event handlers, override them in your derived class
+    def setchanged(self, event):
+        self.m_sdbSizer1Apply.Enable(True)
+    def apply( self, event ):
+        ApplyOK = True
+        if self.m_listBox1.GetSelection() != 0:
+            tf = setting['Language'] != os.path.basename(languagelist1[list(languagelist.values()).index(self.m_listBox1.GetString(self.m_listBox1.GetSelection()))])
+        else:
+            tf = setting['Language'] != 'Auto'
+        if tf:
+            tf = True
+            if frame.m_listCtrl1.GetItemCount():
+                toastone = wx.MessageDialog(None, Lang.settingdlg_warning_changelang(), Lang.title(),
+                                            wx.YES_NO | wx.NO_DEFAULT | wx.ICON_WARNING)
+                toastone.SetYesNoLabels(Lang.dlg_btn_yes(), Lang.dlg_btn_no())
+                a = toastone.ShowModal()
+                if a == wx.ID_YES:
+                    tf = True
+                    frame.change_lang_later_warn = None
+                    self.m_infoCtrl1.Dismiss()
+                    toastone.Destroy()
+                elif a == wx.ID_NO:
+                    tf = False
+                    if self.m_listBox1.GetSelection() == 0:
+                        frame.change_lang_later_warn = Lang.settingdlg_language_auto()
+                    else:
+                        frame.change_lang_later_warn = self.m_listBox1.GetString(self.m_listBox1.GetSelection())
+                    self.m_infoCtrl1.ShowMessage(Lang.settingdlg_warning_changelang_later(frame.change_lang_later_warn),
+                                                 wx.ICON_INFORMATION)
+                    toastone.Destroy()
+            if tf:
+                spec = None
+                lang = None
+                if self.m_listBox1.GetSelection() == 0 and locale in languagedic.keys():
+                    newlanguage = languagedic[locale]
+                elif self.m_listBox1.GetSelection() == 0 and locale not in languagedic.keys():
+                    newlanguage = ''
+                else:
+                    newlanguage = os.path.basename(
+                        languagelist1[
+                            list(languagelist.values()).index(self.m_listBox1.GetString(self.m_listBox1.GetSelection()))])
+                if self.m_listBox1.GetSelection() == 0 and locale in languagedic.keys():
+                    spec = importlib.util.spec_from_file_location(str(os.path.basename(languagedic[locale])),
+                                                                  languagedic[locale])
+                elif (self.m_listBox1.GetSelection() == 0 and locale not in languagedic.keys()) or os.path.join(
+                    GetProgPath(), 'Languages', newlanguage) not in languagelist1:
+                    toastone = wx.MessageDialog(None, Lang.settingdlg_language_error_notinstalled(),
+                                                Lang.title(),
+                                                wx.OK | wx.OK_DEFAULT | wx.ICON_ERROR)
+                    toastone.SetOKLabel(Lang.dlg_btn_ok())
+                    if toastone.ShowModal() == wx.ID_OK:  # 如果点击了提示框的确定按钮
+                        toastone.Destroy()
+                        ApplyOK = False
+                else:
+                    if Verify_Signature(os.path.join(GetProgPath(), 'Languages', str(newlanguage)),
+                                        os.path.join(GetProgPath(), 'Languages', str(newlanguage)) + '.sig') or (
+                            '/DEBUG:DisableLangSign' in sys.argv[1:] and not (
+                            getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'))):
+                        spec = importlib.util.spec_from_file_location(str(newlanguage),
+                                                                      os.path.join(GetProgPath(), 'Languages',
+                                                                                   str(newlanguage)))
+                    else:
+                        toastone = wx.MessageDialog(None, Lang.settingdlg_language_error_signature_failure(),
+                                                    Lang.title(),
+                                                    wx.OK | wx.OK_DEFAULT | wx.ICON_ERROR)
+                        toastone.SetOKLabel(Lang.dlg_btn_ok())
+                        if toastone.ShowModal() == wx.ID_OK:  # 如果点击了提示框的确定按钮
+                            toastone.Destroy()
+                            ApplyOK = False
+                if spec is not None:
+                    lang = importlib.util.module_from_spec(spec)
+                    spec.loader.exec_module(lang)
+                    Lang.ChangeLang(lang)
+                    frame.change_lang()
+                    if '/DEBUG:ForceEnableUpdate' in sys.argv[1:] or not os.path.basename(sys.argv[0]).split('.')[
+                        -1].lower().startswith('py'):
+                        otadlg.change_lang()
+                        if otadlg.status == 0:
+                            otadlg.update(otadlg, usecache=True)
+                    self.change_lang()
+                else:
+                    toastone = wx.MessageDialog(None, Lang.settingdlg_language_error_failure(),
+                                                Lang.title(),
+                                                wx.OK | wx.OK_DEFAULT | wx.ICON_ERROR)
+                    toastone.SetOKLabel(Lang.dlg_btn_ok())
+                    if toastone.ShowModal() == wx.ID_OK:  # 如果点击了提示框的确定按钮
+                        toastone.Destroy()
+                        ApplyOK = False
+        if ApplyOK:
+            if self.m_checkBox1.GetValue() and self.m_textCtrl4.GetValue() == '':
+                toastone = wx.MessageDialog(None, Lang.settingdlg_error_ascr_invaild(),
+                                            Lang.title(),
+                                            wx.OK | wx.OK_DEFAULT | wx.ICON_ERROR)
+                toastone.SetOKLabel(Lang.dlg_btn_ok())
+                if toastone.ShowModal() == wx.ID_OK:  # 如果点击了提示框的确定按钮
+                    toastone.Destroy()
+                    ApplyOK = False
+        if ApplyOK:
+            if self.m_listBox1.GetSelection() == 0:
+                setting['Language'] = 'Auto'
+            else:
+                setting['Language'] = os.path.basename(languagelist1[list(languagelist.values()).index(
+                    self.m_listBox1.GetString(self.m_listBox1.GetSelection()))])
+            setting['SaveTaskEncoding'] = self.m_choice4.GetString(self.m_choice4.GetSelection())
+            setting['ExportResultEncoding'] = self.m_choice5.GetString(self.m_choice5.GetSelection())
+            setting['DefaultCheckMode'] = self.m_choice3.GetSelection()
+            setting['ChecksumUpper'] = int(self.m_checkBox2.GetValue())
+            for i in range(0, frame.m_listCtrl1.GetItemCount()):
+                if setting['ChecksumUpper']:
+                    if frame.m_choice1.GetSelection() == 0:
+                        frame.m_listCtrl1.SetItem(i, 3, frame.m_listCtrl1.GetItemText(i, 3).upper())
+                    elif frame.m_choice1.GetSelection() == 1:
+                        frame.m_listCtrl1.SetItem(i, 2, frame.m_listCtrl1.GetItemText(i, 2).upper())
+                else:
+                    if frame.m_choice1.GetSelection() == 0:
+                        frame.m_listCtrl1.SetItem(i, 3, frame.m_listCtrl1.GetItemText(i, 3).lower())
+                    elif frame.m_choice1.GetSelection() == 1:
+                        frame.m_listCtrl1.SetItem(i, 2, frame.m_listCtrl1.GetItemText(i, 2).lower())
+            setting['CompatibleWithOldTask'] = int(self.m_checkBox3.GetValue())
+            frame.aftercmd = self.m_textCtrl1.GetValue()
+            if self.m_checkBox1.GetValue():
+                frame.aftersave = self.m_textCtrl4.GetValue()
+            else:
+                frame.aftersave = ''
+            SaveSetting(setting)
+            self.m_sdbSizer1Apply.Enable(False)
     def close(self, event):
-        global command, export, isexport
-        command = self.m_textCtrl4.GetValue()
-        if self.m_filePicker2.GetPath() == '' and self.m_checkBox2.GetValue() == True:
-            toastone = wx.MessageDialog(None, language.s91(), language.s81(),
-                                        wx.OK_DEFAULT | wx.ICON_ERROR)
-            toastone.SetOKLabel(language.s57())
-            if toastone.ShowModal() == wx.ID_OK:  # 如果点击了提示框的确定按钮
+        if self.m_sdbSizer1Apply.IsEnabled():
+            toastone = wx.MessageDialog(None, Lang.settingdlg_warning_save(), Lang.title(),
+                                        wx.YES_NO | wx.CANCEL| wx.NO_DEFAULT | wx.ICON_WARNING)
+            toastone.SetYesNoLabels(Lang.dlg_btn_yes(), Lang.dlg_btn_no())
+            toastone.SetOKCancelLabels(Lang.dlg_btn_ok(), Lang.dlg_btn_cancel())
+            a = toastone.ShowModal()
+            if a == wx.ID_YES:
+                self.apply(None)
+                toastone.Destroy()
+                self.EndModal(wx.ID_OK)
+            elif a == wx.ID_NO:
+                toastone.Destroy()
+                self.EndModal(wx.ID_CANCEL)
+            elif a == wx.ID_CANCEL:
                 toastone.Destroy()
         else:
-            isexport = self.m_checkBox2.GetValue()
-            export = self.m_filePicker2.GetPath()
-            setting['DefaultCheckMode'] = self.m_choice5.GetSelection()
-            setting['SaveTaskEncoding'] = self.m_choice2.GetStringSelection()
-            setting['ExportResultEncoding'] = self.m_choice3.GetStringSelection()
-            with open(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'Setting.json'), 'w',
-                      encoding='utf-8') as settingfile:
-                settingfile.write(json.dumps(setting))
-            main.Enable(frame)
-            self.Destroy()
-
-    def recover(self, event):
-        self.m_choice2.SetSelection(97)
-        self.m_choice3.SetSelection(0)
-
-    def changelanguage(self, event):
-        global languagelist
-        if locale not in languagedic.keys() and self.m_listBox2.GetSelection() == 0:
-            toastone = wx.MessageDialog(None, language.s46(), language.s81(),
-                                        wx.OK | wx.OK_DEFAULT | wx.ICON_ERROR)
-            toastone.SetOKLabel(language.s57())
-            if toastone.ShowModal() == wx.ID_OK:  # 如果点击了提示框的确定按钮
-                toastone.Destroy()
-        else:
-            with open(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'newlanguage.py'),
-                      'w', encoding='utf-8') as f:
-                if self.m_listBox2.GetSelection() == 0:
-                    f.write('from ' + languagedic[locale][0] + ' import *')
-                else:
-                    f.write('from ' + languagelist[self.m_listBox2.GetSelection() - 1] + ' import *')
-            import newlanguage
-            reload(newlanguage)
-            toastone = wx.MessageDialog(None, newlanguage.s39(), newlanguage.s1(),
-                                        wx.YES_NO | wx.NO_DEFAULT | wx.ICON_WARNING)
-            toastone.SetYesNoLabels(newlanguage.s63(), newlanguage.s64())
-            if toastone.ShowModal() == wx.ID_YES:  # 如果点击了提示框的确定按钮
-                if self.m_listBox2.GetSelection() == 0:
-                    setting['Language'] = 'Auto'
-                else:
-                    setting['Language'] = languagelist[self.m_listBox2.GetSelection() - 1]
-                with open(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'Setting.json'), 'w',
-                          encoding='utf-8') as settingfile:
-                    settingfile.write(json.dumps(setting))
-                os.popen(sys.argv[0])
-                sys.exit(0)
-
-
-    def disablebutton(self, event):
-        self.m_button2.Enable(False)
-
-    def none(self, event):
-        self.m_textCtrl4.SetValue('')
-
-    def shutdown(self, event):
-        self.m_textCtrl4.SetValue('shutdown -s -t 0')
-
-    def reboot(self, event):
-        self.m_textCtrl4.SetValue('shutdown -r -t 0')
-
-    def custom(self, event):
-        event.Skip()
-
-    def getcmd(self, event):
-        if self.m_textCtrl4.GetValue() == '':
+            self.EndModal(wx.ID_CANCEL)
+    def ascr_check( self, event, mode=True ):
+        if mode:
+            self.setchanged(None)
+        self.m_textCtrl4.Enable(self.m_checkBox1.IsChecked())
+        self.m_button6.Enable(self.m_checkBox1.IsChecked())
+    def getascrpath( self, event ):
+        dlg = wx.FileDialog(self, message=Lang.settingdlg_ascr_pathpicker_title(),
+                            defaultDir='',
+                            defaultFile='',
+                            wildcard=Lang.settingdlg_ascr_pathpicker_wildcards(),
+                            style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT)
+        if dlg.ShowModal() == wx.ID_OK:
+            self.m_textCtrl4.SetValue(dlg.GetPath())
+            dlg.Destroy()
+    def run_command_choice_none( self, event ):
+        self.m_textCtrl1.SetValue('')
+    def run_command_choice_shutdown( self, event ):
+        self.m_textCtrl1.SetValue('shutdown -s -t 0')
+    def run_command_choice_reboot( self, event ):
+        self.m_textCtrl1.SetValue('shutdown -r -t 0')
+    def run_command_edited( self, event, mode=True ):
+        if mode:
+            self.setchanged(None)
+        if self.m_textCtrl1.GetValue() == '':
             self.m_radioBtn1.SetValue(True)
-        elif self.m_textCtrl4.GetValue() == 'shutdown -s -t 0':
+        elif self.m_textCtrl1.GetValue() == 'shutdown -s -t 0':
             self.m_radioBtn2.SetValue(True)
-        elif self.m_textCtrl4.GetValue() == 'shutdown -r -t 0':
+        elif self.m_textCtrl1.GetValue() == 'shutdown -r -t 0':
             self.m_radioBtn3.SetValue(True)
         else:
             self.m_radioBtn4.SetValue(True)
-
-    def autosave(self, event):
-        self.m_filePicker2.Enable(self.m_checkBox2.GetValue())
-
-
-class MyDialog2(wx.Dialog):
-
-    def __init__(self, parent, title):
-        wx.Dialog.__init__(self, parent, id=wx.ID_ANY, title=title, pos=wx.DefaultPosition,
-                           size=wx.Size(300, 135),
-                           style=wx.DEFAULT_DIALOG_STYLE)
-        self.SetSize(wx.Size(int('%.0f' % (300 * self.GetDPI()[0] / 96)),
-                                        int('%.0f' % (135 * self.GetDPI()[0] / 96))))
-        self.SetSizeHints(wx.DefaultSize, wx.DefaultSize)
-
-        bSizer4 = wx.BoxSizer(wx.VERTICAL)
-
-        #bSizer4.Add((0, int('%.0f' % (10 * self.GetDPI()[0] / 96))), 0, 0, 5)
-
-        self.m_textCtrl1 = wx.TextCtrl(self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition,
-                                       wx.Size(-1, -1), 0)
-        if self.GetTitle() != language.s42():
-            if frame.m_choice4.GetSelection() == 0:
-                self.m_textCtrl1.SetValue(frame.m_listCtrl2.GetItemText(frame.m_listCtrl2.GetFocusedItem(), 3))
-            elif frame.m_choice4.GetSelection() == 1:
-                self.m_textCtrl1.SetValue(frame.m_listCtrl2.GetItemText(frame.m_listCtrl2.GetFocusedItem(), 2))
-        bSizer4.Add(self.m_textCtrl1, 0, wx.ALL | wx.EXPAND, 5)
-
-        self.m_staticText11 = wx.StaticText(self, wx.ID_ANY, language.s36([]), wx.DefaultPosition,
-                                            wx.DefaultSize, 0)
-        if len(list(self.m_textCtrl1.GetValue())) == 8:
-            self.m_staticText11.SetLabelText(language.s36(['CRC-32']))
-        elif len(list(self.m_textCtrl1.GetValue())) == 32:
-            self.m_staticText11.SetLabelText(language.s36(['MD5']))
-        elif len(list(self.m_textCtrl1.GetValue())) == 40:
-            self.m_staticText11.SetLabelText(language.s36(['SHA-1']))
-        elif len(list(self.m_textCtrl1.GetValue())) == 56:
-            self.m_staticText11.SetLabelText(language.s36(['SHA-224', 'SHA3-224']))
-        elif len(list(self.m_textCtrl1.GetValue())) == 64:
-            self.m_staticText11.SetLabelText(language.s36(['SHA-256', 'SHA3-256', 'BLAKE2s']))
-        elif len(list(self.m_textCtrl1.GetValue())) == 96:
-            self.m_staticText11.SetLabelText(language.s36(['SHA-384', 'SHA3-384']))
-        elif len(list(self.m_textCtrl1.GetValue())) == 128:
-            self.m_staticText11.SetLabelText(language.s36(['SHA-512', 'SHA3-512', 'BLAKE2b']))
+    def files_setting_restore( self, event ):
+        self.m_choice4.SetSelection(self.encoding_choices.index('UTF_8'))
+        self.m_checkBox3.SetValue(False)
+        if platform.system() == 'Windows':
+            self.m_choice5.SetSelection(self.encoding_choices.index('ANSI'))
         else:
-            self.m_staticText11.SetLabelText(language.s36([]))
+            self.m_choice5.SetSelection(self.encoding_choices.index('UTF_8'))
+        self.setchanged(None)
 
-        self.m_staticText11.Wrap(-1)
 
-        bSizer4.Add(self.m_staticText11, 0, wx.ALL, 5)
-        #bSizer4.Add((0, 0), 1, 0, 5)
-        m_sdbSizer3 = wx.StdDialogButtonSizer()
-        self.m_sdbSizer3OK = wx.Button(self, wx.ID_OK, language.s57(), wx.DefaultPosition, wx.DefaultSize, 0)
-        self.m_sdbSizer3OK.SetDefault()
-        m_sdbSizer3.AddButton(self.m_sdbSizer3OK)
-        m_sdbSizer3.Realize()
-
-        bSizer4.Add( m_sdbSizer3, 0, wx.TOP|wx.BOTTOM|wx.LEFT|wx.EXPAND, 5 )
-
-        self.SetSizer(bSizer4)
-        self.Layout()
-        main.Disable(frame)
-        self.Centre(wx.BOTH)
-
-        # Connect Events
+class ChecksumDialog(UI.ChecksumDialog):
+    def __init__(self, parent=None):
+        UI.ChecksumDialog.__init__(self, parent)
+        self.SetSize(GetScaledSize(self.GetDPI(), self.GetSize()))
+        self.Centre()
+        self.mode = False
+        self.change_lang()
         self.Bind(wx.EVT_CLOSE, self.close)
-        self.m_textCtrl1.Bind(wx.EVT_TEXT, self.gethash)
-        self.m_sdbSizer3OK.Bind(wx.EVT_BUTTON, self.add)
+        self.m_textCtrl2.Bind(wx.EVT_TEXT_ENTER, self.ok)
 
-    def __del__(self):
-        pass
-
-    # Virtual event handlers, override them in your derived class
+    def change_lang(self):
+        self.set_mode(self.mode)
+        self.gettype(None)
+        self.m_sdbSizer2OK.SetLabel(Lang.dlg_btn_ok())
 
     def close(self, event):
-        main.Enable(frame)
-        self.Destroy()
-
-    def gethash(self, event):
-        if len(list(self.m_textCtrl1.GetValue())) == 8:
-            self.m_staticText11.SetLabelText(language.s36(['CRC-32']))
-        elif len(list(self.m_textCtrl1.GetValue())) == 32:
-            self.m_staticText11.SetLabelText(language.s36(['MD5']))
-        elif len(list(self.m_textCtrl1.GetValue())) == 40:
-            self.m_staticText11.SetLabelText(language.s36(['SHA-1']))
-        elif len(list(self.m_textCtrl1.GetValue())) == 56:
-            self.m_staticText11.SetLabelText(language.s36(['SHA-224', 'SHA3-224']))
-        elif len(list(self.m_textCtrl1.GetValue())) == 64:
-            self.m_staticText11.SetLabelText(language.s36(['SHA-256', 'SHA3-256', 'BLAKE2s']))
-        elif len(list(self.m_textCtrl1.GetValue())) == 96:
-            self.m_staticText11.SetLabelText(language.s36(['SHA-384', 'SHA3-384']))
-        elif len(list(self.m_textCtrl1.GetValue())) == 128:
-            self.m_staticText11.SetLabelText(language.s36(['SHA-512', 'SHA3-512', 'BLAKE2b']))
-        else:
-            self.m_staticText11.SetLabelText(language.s36([]))
-
-    def add(self, event):
-        global information
-        if self.GetTitle() == language.s42():
-            index = frame.m_listCtrl2.InsertItem(frame.m_listCtrl2.GetItemCount(),
-                                                 str(frame.m_listCtrl2.GetItemCount() + 1))
-            frame.m_listCtrl2.SetItem(index, 1, '')
-            frame.m_listCtrl2.SetItem(index, 2, '')
-            frame.m_listCtrl2.SetItem(index, 3, self.m_textCtrl1.GetValue().lower())
-            information.append('/')
-        else:
-            if frame.m_choice4.GetSelection() == 0:
-                frame.m_listCtrl2.SetItem(frame.m_listCtrl2.GetFocusedItem(), 1, '')
-                frame.m_listCtrl2.SetItem(frame.m_listCtrl2.GetFocusedItem(), 3, self.m_textCtrl1.GetValue().lower())
-            elif frame.m_choice4.GetSelection() == 1:
-                frame.m_listCtrl2.SetItem(frame.m_listCtrl2.GetFocusedItem(), 2, self.m_textCtrl1.GetValue().lower())
-                frame.m_listCtrl2.SetItem(frame.m_listCtrl2.GetFocusedItem(), 3, '')
-                frame.m_listCtrl2.SetItemBackgroundColour(frame.m_listCtrl2.GetFocusedItem(), wx.Colour(-1, -1, -1))
-        main.Enable(frame)
-        frame.sort(None)
-        self.Destroy()
-
-
-class MyDialog3(wx.Dialog):
-
-    def __init__(self, parent):
-        wx.Dialog.__init__(self, parent, id=wx.ID_ANY, title=language.s44(), pos=wx.DefaultPosition,
-                           size=wx.Size(450, 270),
-                           style=wx.DEFAULT_DIALOG_STYLE)
-        self.SetSize(wx.Size(int('%.0f' % (450 * self.GetDPI()[0] / 96)),
-                                        int('%.0f' % (270 * self.GetDPI()[0] / 96))))
-        main.Disable(frame)
-
-        self.SetSizeHints(wx.DefaultSize, wx.DefaultSize)
-
-        bSizer6 = wx.BoxSizer(wx.VERTICAL)
-
-        self.m_bitmap1 = wx.GenericStaticBitmap(self, wx.ID_ANY,
-                                                wx.Bitmap(os.path.join(os.path.dirname(sys.argv[0]), "Logo.png"),
-                                                          wx.BITMAP_TYPE_ANY),
-                                                wx.DefaultPosition, wx.Size(int('%.0f' % (100 * self.GetDPI()[0] / 96)),
-                                                                            int('%.0f' % (
-                                                                                    100 * self.GetDPI()[0] / 96))),
-                                                0)
-        self.m_bitmap1.SetScaleMode(2)
-        bSizer6.Add(self.m_bitmap1, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 5)
-
-        self.m_staticText1 = wx.StaticText(self, wx.ID_ANY,
-                                           language.s45(version) + '\n' + language.s47(sys.version.partition(' ')[0],
-                                                                                wx.version().partition(' ')[0]) +
-                                           '\n' + 'Copyright ©2025 ZHJ.' + '\n',
-                                           wx.DefaultPosition, wx.DefaultSize, wx.ALIGN_CENTER_HORIZONTAL)
-        self.m_staticText1.Wrap(-1)
-
-        bSizer6.Add(self.m_staticText1, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 5)
-
-        gSizer3 = wx.GridSizer(0, 2, 0, 0)
-
-        self.m_hyperlink1 = wx.adv.HyperlinkCtrl(self, wx.ID_ANY, u"Github", u"https://github.com/ZHJ00000",
-                                                 wx.DefaultPosition, wx.DefaultSize, wx.adv.HL_DEFAULT_STYLE)
-        gSizer3.Add(self.m_hyperlink1, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 5)
-
-        self.m_hyperlink2 = wx.adv.HyperlinkCtrl(self, wx.ID_ANY, u"Gitee", u"https://gitee.com/zhj00",
-                                                 wx.DefaultPosition, wx.DefaultSize, wx.adv.HL_DEFAULT_STYLE)
-        gSizer3.Add(self.m_hyperlink2, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 5)
-
-        bSizer6.Add(gSizer3, 1, wx.EXPAND, 5)
-
-        self.SetSizer(bSizer6)
-        self.Layout()
-
-        self.Centre(wx.BOTH)
-
-        # Connect Events
-        self.Bind(wx.EVT_CLOSE, self.close)
-
-    def __del__(self):
-        pass
-
-    # Virtual event handlers, override them in your derived class
-    def close(self, event):
-        main.Enable(frame)
-        self.Destroy()
-
-
-class MyDialog4(wx.Frame):
-
-    def __init__(self, parent):
-        wx.Frame.__init__(self, parent, id=wx.ID_ANY, title=language.s70(), pos=wx.DefaultPosition,
-                          size=wx.Size(550, 315),
-                          style=wx.DEFAULT_DIALOG_STYLE | wx.CLOSE_BOX)
-        self.SetSize(wx.Size(int('%.0f' % (550 * self.GetDPI()[0] / 96)),
-                                       int('%.0f' % (315 * self.GetDPI()[0] / 96))))
-        self.SetSizeHints(wx.DefaultSize, wx.Size(int('%.0f' % (750 * self.GetDPI()[0] / 96)),
-                                                  int('%.0f' % (450 * self.GetDPI()[0] / 96))))
-        self.SetForegroundColour(wx.SystemSettings.GetColour(wx.SYS_COLOUR_DESKTOP))
-        self.SetBackgroundColour(wx.SystemSettings.GetColour(wx.SYS_COLOUR_MENU))
-
-        bSizer1 = wx.BoxSizer(wx.VERTICAL)
-
-        self.m_staticText1 = wx.StaticText(self, wx.ID_ANY, language.s66(), wx.DefaultPosition, wx.DefaultSize, 0)
-        self.m_staticText1.Wrap(-1)
-
-        bSizer1.Add(self.m_staticText1, 0, wx.ALL, 5)
-
-        self.m_staticText2 = wx.StaticText(self, wx.ID_ANY, language.s71(), wx.DefaultPosition, wx.DefaultSize,
-                                           wx.ST_ELLIPSIZE_END)
-        self.m_staticText2.Wrap(-1)
-
-        bSizer1.Add(self.m_staticText2, 0, wx.ALL, 5)
-
-        self.m_staticText3 = wx.StaticText(self, wx.ID_ANY, language.s72(), wx.DefaultPosition, wx.DefaultSize, 0)
-        self.m_staticText3.Wrap(-1)
-
-        bSizer1.Add(self.m_staticText3, 0, wx.ALL, 5)
-
-        self.m_staticText4 = wx.StaticText(self, wx.ID_ANY, language.s67(), wx.DefaultPosition, wx.DefaultSize, 0)
-        self.m_staticText4.Wrap(-1)
-
-        bSizer1.Add(self.m_staticText4, 0, wx.ALL, 5)
-
-        self.m_staticText5 = wx.StaticText(self, wx.ID_ANY, language.s68(), wx.DefaultPosition, wx.DefaultSize, 0)
-        self.m_staticText5.Wrap(-1)
-
-        bSizer1.Add(self.m_staticText5, 0, wx.ALL, 5)
-
-        self.m_gauge1 = wx.Gauge(self, wx.ID_ANY, 10000, wx.DefaultPosition,
-                                 wx.Size(int('%.0f' % (500 * self.GetDPI()[0] / 96)),
-                                         int('%.0f' % (25 * self.GetDPI()[0] / 96))), wx.GA_HORIZONTAL)
-        self.m_gauge1.SetValue(0)
-        bSizer1.Add(self.m_gauge1, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 5)
-
-        self.m_staticText6 = wx.StaticText(self, wx.ID_ANY, language.s69(), wx.DefaultPosition, wx.DefaultSize, 0)
-        self.m_staticText6.Wrap(-1)
-
-        bSizer1.Add(self.m_staticText6, 0, wx.ALL, 5)
-
-        self.m_gauge2 = wx.Gauge(self, wx.ID_ANY, 10000, wx.DefaultPosition,
-                                 wx.Size(int('%.0f' % (500 * self.GetDPI()[0] / 96)),
-                                         int('%.0f' % (25 * self.GetDPI()[0] / 96))),
-                                 wx.GA_HORIZONTAL | wx.GA_PROGRESS)
-        self.m_gauge2.SetValue(0)
-        bSizer1.Add(self.m_gauge2, 0, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 5)
-
-        m_sdbSizer4 = wx.StdDialogButtonSizer()
-        self.m_sdbSizer4OK = wx.Button(self, wx.ID_OK, language.s113())
-        m_sdbSizer4.AddButton(self.m_sdbSizer4OK)
-        self.m_sdbSizer4Cancel = wx.Button(self, wx.ID_CANCEL, language.s54())
-        m_sdbSizer4.AddButton(self.m_sdbSizer4Cancel)
-        m_sdbSizer4.Realize()
-
-        bSizer1.Add( m_sdbSizer4, 1, wx.EXPAND|wx.TOP|wx.BOTTOM|wx.LEFT, 5 )
-
-        self.SetSizer(bSizer1)
-        self.Layout()
-
-        self.Centre(wx.BOTH)
-
-        # Connect Events
-        self.Bind(wx.EVT_CLOSE, self.cancel)
-        self.m_sdbSizer4Cancel.Bind(wx.EVT_BUTTON, self.cancel)
-        self.m_sdbSizer4OK.Bind(wx.EVT_BUTTON, self.pause)
-
-    def __del__(self):
-        pass
-
-    # Virtual event handlers, override them in your derived class
-    def close(self, event):
-        pass
-
-    def cancel(self, event):
-        global iscancel
-        toastone = wx.MessageDialog(None, language.s115(), language.s1(),
-                                    wx.YES_NO | wx.NO_DEFAULT | wx.ICON_WARNING)
-        toastone.SetYesNoLabels(language.s63(), language.s64())
-        if toastone.ShowModal() == wx.ID_YES:  # 如果点击了提示框的确定按钮
-            toastone.Destroy()
-            iscancel = True
-
-    def pause(self, event):
-        global ispause
-        if ispause:
-            ispause = False
-            self.m_sdbSizer4OK.SetLabel(language.s113())
-        else:
-            ispause = True
-            self.m_sdbSizer4OK.SetLabel(language.s114())
-
-
-class MyDialog5(wx.Dialog):
-
-    def __init__(self, parent, coding, mode=0):
-        global encoding, file
-        main.Disable(frame)
-        wx.Dialog.__init__(self, parent, id=wx.ID_ANY, title=language.s50() + ' - ' + file,
-                           pos=wx.DefaultPosition, size=wx.Size(500, 400),
-                           style=wx.DEFAULT_DIALOG_STYLE)
-        self.SetSize(wx.Size(int('%.0f' % (500 * self.GetDPI()[0] / 96)),
-                                                                int('%.0f' % (400 * self.GetDPI()[0] / 96))))
-        self.SetSizeHints(wx.DefaultSize, wx.DefaultSize)
-
-        self.mode = mode
-
-        bSizer10 = wx.BoxSizer(wx.VERTICAL)
-
-        gSizer4 = wx.GridSizer(0, 2, 0, 0)
-
-        bSizer101 = wx.BoxSizer(wx.VERTICAL)
-
-        self.m_staticText13 = wx.StaticText(self, wx.ID_ANY, language.s51(), wx.DefaultPosition,
-                                            wx.DefaultSize, 0)
-        self.m_staticText13.Wrap(-1)
-
-        bSizer101.Add(self.m_staticText13, 0, wx.ALL, 5)
-
-        m_listBox1Choices = ['ANSI', 'ASCII', 'BIG5', 'BIG5HKSCS', 'CP037', 'CP273', 'CP424', 'CP437', 'CP500', 'CP720',
-                             'CP737', 'CP775', 'CP850', 'CP852', 'CP855', 'CP856', 'CP857', 'CP858', 'CP860', 'CP861',
-                             'CP862', 'CP863', 'CP864', 'CP865', 'CP866', 'CP869', 'CP874', 'CP875', 'CP932', 'CP949',
-                             'CP950', 'CP1006', 'CP1026', 'CP1125', 'CP1140', 'CP1250', 'CP1251', 'CP1252', 'CP1253',
-                             'CP1254', 'CP1255', 'CP1256', 'CP1257', 'CP1258', 'EUC_JP', 'EUC_JIS_2004', 'EUC_JISX0213',
-                             'EUC_KR', 'GB2312', 'GBK', 'GB18030', 'HZ', 'ISO2022_JP', 'ISO2022_JP_1', 'ISO2022_JP_2',
-                             'ISO2022_JP_2004', 'ISO2022_JP_3', 'ISO2022_JP_EXT', 'ISO2022_KR', 'LATIN_1', 'ISO8859_2',
-                             'ISO8859_3', 'ISO8859_4', 'ISO8859_5', 'ISO8859_6', 'ISO8859_7', 'ISO8859_8', 'ISO8859_9',
-                             'ISO8859_10', 'ISO8859_11', 'ISO8859_13', 'ISO8859_14', 'ISO8859_15', 'ISO8859_16',
-                             'JOHAB', 'KOI8_R', 'KOI8_T', 'KOI8_U', 'KZ1048', 'MAC_CYRILLIC', 'MAC_GREEK',
-                             'MAC_ICELAND', 'MAC_LATIN2', 'MAC_ROMAN', 'MAC_TURKISH', 'OEM', 'PTCP154', 'SHIFT_JIS',
-                             'SHIFT_JIS_2004', 'SHIFT_JISX0213', 'UTF_32', 'UTF_32_BE', 'UTF_32_LE', 'UTF_16',
-                             'UTF_16_BE', 'UTF_16_LE', 'UTF_7', 'UTF_8', 'UTF_8_SIG']
-
-        self.m_listBox1 = wx.ListBox(self, wx.ID_ANY, wx.DefaultPosition,
-                                     wx.Size(int('%.0f' % (230 * self.GetDPI()[0] / 96)),
-                                             int('%.0f' % (290 * self.GetDPI()[0] / 96))), m_listBox1Choices,
-                                     wx.LB_NEEDED_SB | wx.LB_SINGLE)
-        try:
-            self.m_listBox1.SetSelection(m_listBox1Choices.index(find_encoding_key(coding)))
-        except ValueError:
-            self.m_listBox1.SetSelection(97)
-        bSizer101.Add(self.m_listBox1, 0, wx.ALL, 5)
-
-        gSizer4.Add(bSizer101, 1, wx.EXPAND, 5)
-
-        bSizer11 = wx.BoxSizer(wx.VERTICAL)
-
-        self.m_staticText14 = wx.StaticText(self, wx.ID_ANY, language.s52(), wx.DefaultPosition, wx.DefaultSize, 0)
-        self.m_staticText14.Wrap(-1)
-
-        bSizer11.Add(self.m_staticText14, 0, wx.ALL, 5)
-
-        self.m_richText1 = wx.richtext.RichTextCtrl(self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition,
-                                                    wx.DefaultSize,
-                                                    wx.TE_READONLY | wx.VSCROLL | wx.HSCROLL | wx.NO_BORDER | wx.WANTS_CHARS)
-        bSizer11.Add(self.m_richText1, 1, wx.EXPAND | wx.ALL, 5)
-
-        m_sdbSizer1 = wx.StdDialogButtonSizer()
-        self.m_sdbSizer1OK = wx.Button(self, wx.ID_OK, language.s53())
-        m_sdbSizer1.AddButton(self.m_sdbSizer1OK)
-        self.m_sdbSizer1Cancel = wx.Button(self, wx.ID_CANCEL, language.s54())
-        m_sdbSizer1.AddButton(self.m_sdbSizer1Cancel)
-        m_sdbSizer1.Realize()
-
-        gSizer4.Add(bSizer11, 1, wx.EXPAND, 5)
-
-        bSizer10.Add(gSizer4, 1, wx.EXPAND, 5)
-
-        bSizer10.Add(m_sdbSizer1, 0, wx.EXPAND | wx.TOP|wx.BOTTOM|wx.LEFT, 5)
-
-        if find_encoding_key(coding) not in m_listBox1Choices:
-            encoding = 'utf-8'
-        else:
-            encoding = coding
-        try:
-            with open(file, 'r', encoding=encoding, errors='replace') as display:
-                self.m_richText1.SetValue(display.read())
-                self.m_sdbSizer1OK.Enable(True)
-        except Exception as err:
-            self.m_sdbSizer1OK.Enable(False)
-            self.m_richText1.BeginTextColour(wx.Colour(255, 0, 0))
-            self.m_richText1.SetValue(language.s55() + '\n' + type(err).__name__ + ': ' + str(err))
-            self.m_richText1.EndTextColour()
-        self.SetSizer(bSizer10)
-        self.Layout()
-
-        self.Centre(wx.BOTH)
-
-        # Connect Events
-        self.Bind(wx.EVT_CLOSE, self.close)
-        self.m_listBox1.Bind(wx.EVT_LISTBOX, self.getcode)
-        self.m_sdbSizer1Cancel.Bind(wx.EVT_BUTTON, self.close)
-        self.m_sdbSizer1OK.Bind(wx.EVT_BUTTON, self.ok)
-
-    def __del__(self):
-        pass
-
-    # Virtual event handlers, override them in your derived class
-    def close(self, event):
-        main.Enable(frame)
-        self.Destroy()
-
-    def getcode(self, event):
-        global encoding, file
-        encoding = self.m_listBox1.GetString(self.m_listBox1.GetSelection())
-        try:
-            with open(file, 'r', encoding=encoding, errors='replace') as display:
-                self.m_richText1.SetValue(display.read())
-                self.m_sdbSizer1OK.Enable(True)
-        except Exception as err:
-            self.m_sdbSizer1OK.Enable(False)
-            self.m_richText1.BeginTextColour(wx.Colour(255, 0, 0))
-            self.m_richText1.SetValue(language.s55() + '\n' + type(err).__name__ + ': ' + str(err))
-            self.m_richText1.EndTextColour()
+        self.EndModal(wx.ID_CANCEL)
 
     def ok(self, event):
-        main.Enable(frame)
-        self.Destroy()
-        if not self.mode:
-            intask(file, encoding)
+        self.EndModal(wx.ID_OK)
+
+    def set_mode(self, mode=False):
+        self.mode = mode
+        if mode:
+            self.SetTitle(Lang.checksumdlg_title_edit())
         else:
-            with open(file, 'r', encoding=encoding) as f:
-                frame.inputshafile.m_richText4.SetValue(f.read())
+            self.SetTitle(Lang.checksumdlg_title_add())
+
+    def gettype( self, event ):
+        if len(list(self.m_textCtrl2.GetValue())) == 8:
+            self.m_staticText5.SetLabelText(Lang.checksumdlg_checksum_type(['CRC-32']))
+        elif len(list(self.m_textCtrl2.GetValue())) == 32:
+            self.m_staticText5.SetLabelText(Lang.checksumdlg_checksum_type(['MD5']))
+        elif len(list(self.m_textCtrl2.GetValue())) == 40:
+            self.m_staticText5.SetLabelText(Lang.checksumdlg_checksum_type(['SHA-1']))
+        elif len(list(self.m_textCtrl2.GetValue())) == 56:
+            self.m_staticText5.SetLabelText(Lang.checksumdlg_checksum_type(['SHA-224', 'SHA3-224']))
+        elif len(list(self.m_textCtrl2.GetValue())) == 64:
+            self.m_staticText5.SetLabelText(Lang.checksumdlg_checksum_type(['SHA-256', 'SHA3-256', 'BLAKE2s']))
+        elif len(list(self.m_textCtrl2.GetValue())) == 96:
+            self.m_staticText5.SetLabelText(Lang.checksumdlg_checksum_type(['SHA-384', 'SHA3-384']))
+        elif len(list(self.m_textCtrl2.GetValue())) == 128:
+            self.m_staticText5.SetLabelText(Lang.checksumdlg_checksum_type(['SHA-512', 'SHA3-512', 'BLAKE2b']))
+        else:
+            self.m_staticText5.SetLabelText(Lang.checksumdlg_checksum_type([]))
+
+    def set_checksum(self, checksum):
+        self.m_textCtrl2.SetValue(checksum)
+        self.gettype(None)
+    def get_checksum(self):
+        return self.m_textCtrl2.GetValue()
 
 
-class MyDialog6(wx.Dialog):
+class About(UI.About):
+    def __init__(self, parent=None):
+        UI.About.__init__(self, parent)
+        self.SetSize(GetScaledSize(self.GetDPI(), self.GetSize()))
+        self.Centre()
+        self.m_customControl1.SetScaleMode(2)
+        self.change_lang()
 
-    def __init__(self, parent):
-        global information
-        wx.Dialog.__init__(self, parent, id=wx.ID_ANY, title=language.s92(), pos=wx.DefaultPosition,
-                           size=wx.Size(500, 300),
-                           style=wx.DEFAULT_DIALOG_STYLE)
-        self.SetSize(wx.Size(int('%.0f' % (500 * self.GetDPI()[0] / 96)),
-                                        int('%.0f' % (300 * self.GetDPI()[0] / 96))))
-        self.SetSizeHints(wx.DefaultSize, wx.DefaultSize)
+    def change_lang(self):
+        self.SetTitle(Lang.aboutdlg_title())
+        self.m_staticText6.SetLabel(Lang.aboutdlg_software_name(arch))
+        self.m_staticText7.SetLabel(Lang.aboutdlg_version(Version))
+        self.m_staticText8.SetLabel(Lang.aboutdlg_build(Build))
+        self.m_richText1.Clear()
+        self.m_richText1.AppendText(Lang.aboutdlg_pyver(sys.version.partition(' ')[0]))
+        self.m_richText1.AppendText('\n')
+        self.m_richText1.AppendText(Lang.aboutdlg_wxpyver(wx.version().partition(' ')[0]))
+        self.m_richText1.AppendText('\n\n')
+        self.m_richText1.AppendText(Lang.aboutdlg_language())
+        self.m_richText1.AppendText('\n\n')
+        self.m_richText1.AppendText(Lang.aboutdlg_open_source_declaration('Apache-2.0'))
 
-        bSizer9 = wx.BoxSizer(wx.VERTICAL)
 
-        self.m_richText2 = wx.richtext.RichTextCtrl(self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize,
-                                                    wx.TE_READONLY | wx.VSCROLL | wx.HSCROLL | wx.NO_BORDER | wx.WANTS_CHARS)
-        text = ''
-        if frame.m_choice4.GetSelection() == 0:
-            if frame.m_listCtrl2.GetItemText(frame.m_listCtrl2.GetFocusedItem(), 2) == '':
-                text = text + language.s93() + '/' + '\n'
-                text = text + language.s94() + \
-                       frame.m_listCtrl2.GetItemText(frame.m_listCtrl2.GetFocusedItem(), 3) + '\n'
-                text = text + language.s95() + '/' + '\n' + language.s96() + '/'
+class Calculation(UI.Calculation):
+    def __init__(self, parent=None):
+        UI.Calculation.__init__(self, parent)
+        self.SetSize(GetScaledSize(self.GetDPI(), self.GetSize()))
+        if platform.system() == 'Windows':
+            self.SetBackgroundColour(wx.SystemSettings.GetColour(wx.SYS_COLOUR_MENU))
+        self.Centre()
+        self.change_lang()
+
+    def change_lang(self):
+        self.SetTitle(Lang.calcdlg_title())
+        self.m_staticText10.SetLabel(Lang.calcdlg_elapsed_time())
+        self.m_staticText12.SetLabel(Lang.calcdlg_file())
+        self.m_staticText14.SetLabel(Lang.calcdlg_size())
+        self.m_staticText16.SetLabel(Lang.calcdlg_speed())
+        self.m_staticText18.SetLabel(Lang.calcdlg_progress())
+        self.m_staticText19.SetLabel(Lang.calcdlg_overall_progress())
+        self.m_sdbSizer3OK.SetLabel(Lang.calcdlg_btn_pause())
+        self.m_sdbSizer3Cancel.SetLabel(Lang.dlg_btn_cancel())
+
+    def intformat(self, int):
+        l = list(str(int))
+        for i in range(0, len(l) // 3):
+            if len(l) + 1 - (i + 1) * 4 != 0:
+                l.insert(len(l) + 1 - (i + 1) * 4, ',')
+        string = ''
+        for i in l:
+            string = string + i
+        return string
+    def sizeformat(self, size, speedmode=False):
+        if not speedmode:
+            if size >= 1099511627776:  # 1TB
+                return str('%.2f' % (size / 1099511627776)) + ' TB (' + self.intformat(
+                    size) + ' ' + Lang.calcdlg_str_bytes() + ')'
+            elif size >= 1073741824:  # 1GB
+                return str('%.2f' % (size / 1073741824)) + ' GB (' + self.intformat(
+                    size) + ' ' + Lang.calcdlg_str_bytes() + ')'
+            elif size >= 1048576:  # 1MB
+                return str('%.2f' % (size / 1048576)) + ' MB (' + self.intformat(size) + ' ' + Lang.calcdlg_str_bytes() + ')'
+            elif size >= 1024:  # 1KB
+                return str('%.2f' % (size / 1024)) + ' KB (' + self.intformat(size) + ' ' + Lang.calcdlg_str_bytes() + ')'
             else:
-                text = text + language.s93() + \
-                       frame.m_listCtrl2.GetItemText(frame.m_listCtrl2.GetFocusedItem(), 2) + '\n'
-                if frame.m_listCtrl2.GetItemText(frame.m_listCtrl2.GetFocusedItem(), 3) == '':
-                    text = text + language.s94() + '/' + '\n'
-                else:
-                    text = text + language.s94() + \
-                           frame.m_listCtrl2.GetItemText(frame.m_listCtrl2.GetFocusedItem(), 3) + '\n'
-                if frame.m_listCtrl2.GetItemText(frame.m_listCtrl2.GetFocusedItem(), 3) != language.s81():
-                    text = text + language.s95() + information[
-                        int(frame.m_listCtrl2.GetItemText(frame.m_listCtrl2.GetFocusedItem(),
-                                                          0)) - 1] + '\n' + language.s96() + '/'
-                else:
-                    text = text + language.s95() + '/' + '\n' + language.s96() + information[
-                        int(frame.m_listCtrl2.GetItemText(frame.m_listCtrl2.GetFocusedItem(), 0)) - 1]
-        elif frame.m_choice4.GetSelection() == 1:
-            text = text + language.s93() + \
-                   frame.m_listCtrl2.GetItemText(frame.m_listCtrl2.GetFocusedItem(), 1) + '\n'
-            if frame.m_listCtrl2.GetItemText(frame.m_listCtrl2.GetFocusedItem(), 2) == '':
-                text = text + language.s138() + '/' + '\n'
+                return str(self.intformat(size)) + ' ' + Lang.calcdlg_str_bytes()
+        else:
+            if size >= 1099511627776:  # 1TB
+                return str('%.2f' % (size / 1099511627776)) + ' TB/s'
+            elif size >= 1073741824:  # 1GB
+                return str('%.2f' % (size / 1073741824)) + ' GB/s'
+            elif size >= 1048576:  # 1MB
+                return str('%.2f' % (size / 1048576)) + ' MB/s'
+            elif size >= 1024:  # 1KB
+                return str('%.2f' % (size / 1024)) + ' KB/s'
             else:
-                text = text + language.s138() + \
-                       frame.m_listCtrl2.GetItemText(frame.m_listCtrl2.GetFocusedItem(), 2) + '\n'
-            if frame.m_listCtrl2.GetItemText(frame.m_listCtrl2.GetFocusedItem(), 3) != language.s81():
-                text = text + language.s95() + information[
-                    int(frame.m_listCtrl2.GetItemText(frame.m_listCtrl2.GetFocusedItem(),
-                                                      0)) - 1] + '\n' + language.s96() + '/'
-            else:
-                text = text + language.s95() + '/' + '\n' + language.s96() + information[
-                    int(frame.m_listCtrl2.GetItemText(frame.m_listCtrl2.GetFocusedItem(), 0)) - 1]
-        self.m_richText2.SetValue(text)
-        bSizer9.Add(self.m_richText2, 1, wx.EXPAND | wx.ALL, 5)
+                return str(size) + ' B/s'
 
-        m_sdbSizer3 = wx.StdDialogButtonSizer()
-        self.m_sdbSizer3OK = wx.Button(self, wx.ID_OK)
-        self.m_sdbSizer3OK.SetLabelText(language.s53())
-        m_sdbSizer3.AddButton(self.m_sdbSizer3OK)
-        m_sdbSizer3.Realize()
+    def update(self, count, time, file, size, speed, progress, overall_progress):
+        if not count == (None, None) or count is None:
+            self.SetTitle(Lang.calcdlg_title(count))
+        if time:
+            self.m_staticText11.SetLabel(timeformat(time))
+        if file:
+            self.m_staticText13.SetLabel(file)
+        if size:
+            self.m_staticText15.SetLabel(self.sizeformat(size))
+        if speed:
+            self.m_staticText17.SetLabel(speed)
+        if progress:
+            self.m_gauge1.SetValue(int('%.0f' % (progress * 100)))
+        if overall_progress:
+            self.m_gauge2.SetValue(int('%.0f' % (overall_progress * 100)))
 
-        bSizer9.Add(m_sdbSizer3, 0, wx.EXPAND | wx.ALL, 5)
+    def pause(self, event):
+        if frame.ispause:
+            frame.ispause = False
+            self.m_sdbSizer3OK.SetLabel(Lang.calcdlg_btn_continue())
+        else:
+            frame.ispause = True
+            self.m_sdbSizer3OK.SetLabel(Lang.calcdlg_btn_pause())
 
-        self.SetSizer(bSizer9)
+    def cancel(self, event):
+        toastone = wx.MessageDialog(None, Lang.calcdlg_warning_cancel(), Lang.title(),
+                                    wx.YES_NO | wx.NO_DEFAULT | wx.ICON_WARNING)
+        toastone.SetYesNoLabels(Lang.dlg_btn_yes(), Lang.dlg_btn_no())
+        if toastone.ShowModal() == wx.ID_YES:  # 如果点击了提示框的确定按钮
+            toastone.Destroy()
+            frame.iscancel = True
+
+
+class EncodingPicker(UI.EncodingPicker):
+    def __init__(self, parent=None):
+        UI.EncodingPicker.__init__(self, parent)
+        self.SetSize(GetScaledSize(self.GetDPI(), self.GetSize()))
+        self.Centre()
+        self.change_lang()
+        self.file = ''
+        self.m_listBox2.SetItems(encodingchoices)
+        self.m_listBox2.SetSelection(self.m_listBox2.GetItems().index('UTF_8'))
+
+
+    def change_lang(self):
+        self.SetTitle(Lang.encodingpickerdlg_title())
+        self.m_staticText20.SetLabel(Lang.encodingpickerdlg_hint())
+        self.m_sdbSizer4OK.SetLabel(Lang.dlg_btn_ok())
+        self.m_sdbSizer4Cancel.SetLabel(Lang.dlg_btn_cancel())
+
+    def set_file(self, file):
+        self.file = file
+        self.SetTitle(Lang.encodingpickerdlg_title(file))
+        self.update_preview(None)
+
+    def update_preview( self, event ):
+        if self.file:
+            try:
+                with open(self.file, 'r', encoding=self.get_encoding(), errors='replace') as f:
+                    self.m_richText2.SetValue(f.read())
+                self.m_sdbSizer4OK.Enable(True)
+            except Exception as err:
+                self.m_sdbSizer4OK.Enable(False)
+                self.m_richText2.BeginTextColour(wx.Colour(255, 0, 0))
+                self.m_richText2.SetValue('无法读取文件：' + '\n' + type(err).__name__ + ': ' + str(err))
+                self.m_richText2.EndTextColour()
+        else:
+            self.m_richText2.SetValue('')
+            self.m_sdbSizer4OK.Enable(False)
+
+    def set_encoding(self, encoding):
+        self.m_listBox2.SetSelection(self.m_listBox2.GetItems().index(encoding))
+        self.update_preview(None)
+
+    def get_encoding(self):
+        return self.m_listBox2.GetString(self.m_listBox2.GetSelection())
+
+
+class Details(UI.Details):
+    def __init__(self, parent=None):
+        UI.Details.__init__(self, parent)
+        self.SetSize(GetScaledSize(self.GetDPI(), self.GetSize()))
+        self.Centre()
+        self.change_lang()
+
+    def change_lang(self):
+        self.SetTitle(Lang.detailsdlg_title())
+        self.m_sdbSizer5OK.SetLabel(Lang.dlg_btn_ok())
+
+    def set_value(self, value):
+        self.m_richText3.SetValue(value)
+
+
+class ItemDialog(UI.ItemDialog):
+    def __init__(self, parent=None):
+        UI.ItemDialog.__init__(self, parent)
+        self.SetSize(GetScaledSize(self.GetDPI(), self.GetSize()))
+        self.Centre()
+        self.change_lang()
+        self.SetSize(GetScaledSize(self.GetDPI(), wx.Size(300 + self.m_textCtrl3.GetPosition()[0], self.GetSize()[1])))
+        self.m_sdbSizer7OK.Bind(wx.EVT_BUTTON, self.ok)
+
+    def change_lang(self):
+        self.SetTitle(Lang.itemdlg_title())
+        self.m_staticText25.SetLabel(Lang.itemdlg_file())
+        self.m_staticText26.SetLabel(Lang.itemdlg_expected_checksum())
+        self.m_staticText27.SetLabel(Lang.itemdlg_checksum_type_title())
+        self.gettype(None)
+        self.m_sdbSizer7OK.SetLabel(Lang.dlg_btn_ok())
+        self.m_sdbSizer7Cancel.SetLabel(Lang.dlg_btn_cancel())
         self.Layout()
 
-        self.Centre(wx.BOTH)
+    def getpath(self, event):
+        dlg = wx.FileDialog(self, message=Lang.filedlg_title_add(),
+                            defaultDir='',
+                            defaultFile='',
+                            wildcard=Lang.filedlg_wildcard_1(),
+                            style=wx.FD_OPEN)
+        if dlg.ShowModal() == wx.ID_OK:
+            self.m_textCtrl5.SetValue(dlg.GetPath())
+            dlg.Destroy()
 
-        # Connect Events
+    def gettype( self, event ):
+        if len(list(self.m_textCtrl3.GetValue())) == 8:
+            self.m_staticText28.SetLabelText(Lang.itemdlg_checksum_type(['CRC-32']))
+        elif len(list(self.m_textCtrl3.GetValue())) == 32:
+            self.m_staticText28.SetLabelText(Lang.itemdlg_checksum_type(['MD5']))
+        elif len(list(self.m_textCtrl3.GetValue())) == 40:
+            self.m_staticText28.SetLabelText(Lang.itemdlg_checksum_type(['SHA-1']))
+        elif len(list(self.m_textCtrl3.GetValue())) == 56:
+            self.m_staticText28.SetLabelText(Lang.itemdlg_checksum_type(['SHA-224', 'SHA3-224']))
+        elif len(list(self.m_textCtrl3.GetValue())) == 64:
+            self.m_staticText28.SetLabelText(Lang.itemdlg_checksum_type(['SHA-256', 'SHA3-256', 'BLAKE2s']))
+        elif len(list(self.m_textCtrl3.GetValue())) == 96:
+            self.m_staticText28.SetLabelText(Lang.itemdlg_checksum_type(['SHA-384', 'SHA3-384']))
+        elif len(list(self.m_textCtrl3.GetValue())) == 128:
+            self.m_staticText28.SetLabelText(Lang.itemdlg_checksum_type(['SHA-512', 'SHA3-512', 'BLAKE2b']))
+        else:
+            self.m_staticText28.SetLabelText(Lang.itemdlg_checksum_type([]))
+
+    def ok(self, event):
+        if not os.path.isfile(self.m_textCtrl5.GetValue()):
+            toastone = wx.MessageDialog(None, Lang.itemdlg_invalid_file_error(self.m_textCtrl5.GetValue()),
+                                        Lang.title(),
+                                        wx.OK | wx.OK_DEFAULT | wx.ICON_ERROR)
+            toastone.SetOKLabel(Lang.dlg_btn_ok())
+            if toastone.ShowModal() == wx.ID_OK:  # 如果点击了提示框的确定按钮
+                toastone.Destroy()
+        else:
+            self.EndModal(wx.ID_OK)
+
+    def set_file(self, file:str):
+        self.m_textCtrl5.SetValue(file)
+
+    def get_input(self):
+        return [self.m_textCtrl5.GetValue(), self.m_textCtrl3.GetValue()]
+
+
+class OpenTaskDialog(UI.OpenTaskDialog):
+    def __init__(self, parent=None):
+        UI.OpenTaskDialog.__init__(self, parent)
+        self.SetSize(GetScaledSize(self.GetDPI(), self.GetSize()))
+        self.Centre()
+        self.change_lang()
         self.Bind(wx.EVT_CLOSE, self.close)
-        self.m_sdbSizer3OK.Bind(wx.EVT_BUTTON, self.close)
 
-    def __del__(self):
-        pass
+    def change_lang(self):
+        self.SetTitle(Lang.opentaskdlg_title())
+        self.m_staticText29.SetLabel(Lang.opentaskdlg_hint())
+        self.m_button5.SetLabel(Lang.opentaskdlg_loadfile())
+        self.m_sdbSizer8OK.SetLabel(Lang.dlg_btn_ok())
 
-    # Virtual event handlers, override them in your derived class
     def close(self, event):
-        self.Destroy()
+        self.EndModal(wx.ID_CANCEL)
 
+    def load(self, event):
+        dlg = wx.FileDialog(self, message=Lang.filedlg_title_opentask(),
+                            defaultDir='',
+                            defaultFile='',
+                            wildcard=Lang.opentaskdlg_loadfile_wildcard(),
+                            style=wx.FD_OPEN)
+        if dlg.ShowModal() == wx.ID_OK:
+            file = dlg.GetPath()
+            dlg.Destroy()
+            encodingpick = EncodingPicker(self)
+            encodingpick.set_file(file)
+            encodingpick.set_encoding('UTF_8')
+            if encodingpick.ShowModal() == wx.ID_OK:
+                with open(file, 'r', encoding=encodingpick.get_encoding(), errors='replace') as f:
+                    self.m_richText4.SetValue(f.read())
 
-class MyDialog7(wx.Dialog):
+    def get_input(self):
+        return self.m_richText4.GetValue()
 
-    def __init__(self, parent):
-        wx.Dialog.__init__(self, parent, id=wx.ID_ANY, title=language.s117(), pos=wx.DefaultPosition,
-                           size=wx.Size(600, 450), style=wx.DEFAULT_DIALOG_STYLE)
-
-        self.SetSize(wx.Size(int('%.0f' % (600 * self.GetDPI()[0] / 96)),
-                             int('%.0f' % (
-                                     450 * self.GetDPI()[0] / 96))))
+class OTA(UI.OTA):
+    def __init__(self, parent=None):
+        UI.OTA.__init__(self, parent)
+        self.SetSize(GetScaledSize(self.GetDPI(), self.GetSize()))
+        self.Centre()
+        self.m_customControl2.SetScaleMode(2)
+        self.change_lang()
         self.retry = 0
+        self.status = 0
         self.current_version = {'link': {}}
-        self.SetSizeHints(wx.DefaultSize, wx.DefaultSize)
-
-        bSizer13 = wx.BoxSizer(wx.VERTICAL)
-
-        fgSizer1 = wx.FlexGridSizer(0, 2, 0, 0)
-        fgSizer1.SetFlexibleDirection(wx.BOTH)
-        fgSizer1.SetNonFlexibleGrowMode(wx.FLEX_GROWMODE_SPECIFIED)
-
-        self.m_bitmap2 = wx.GenericStaticBitmap(self, wx.ID_ANY,
-                                                wx.Bitmap(os.path.join(os.path.dirname(sys.argv[0]), "Logo.png"),
-                                                          wx.BITMAP_TYPE_ANY),
-                                                wx.DefaultPosition, wx.Size(int('%.0f' % (50 * self.GetDPI()[0] / 96)),
-                                                                            int('%.0f' % (
-                                                                                    50 * self.GetDPI()[0] / 96))), 0)
-        self.m_bitmap2.SetScaleMode(2)
-        fgSizer1.Add(self.m_bitmap2, 0, wx.ALL, 5)
-
-        self.m_staticText14 = wx.StaticText(self, wx.ID_ANY,
-                                            language.s1() + '\n' + language.s118(version) + '\n' + language.s119(None),
-                                            wx.DefaultPosition, wx.DefaultSize, 0)
-        self.m_staticText14.Wrap(-1)
-
-        fgSizer1.Add(self.m_staticText14, 1, wx.ALL, 5)
-
-        bSizer13.Add(fgSizer1, 0, wx.EXPAND, 5)
-
-        #self.m_richText3 = wx.richtext.RichTextCtrl(self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize,
-                                                    #wx.TE_READONLY | wx.VSCROLL | wx.HSCROLL | wx.NO_BORDER | wx.WANTS_CHARS)
-        self.m_htmlWin1 = wx.html.HtmlWindow(self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize,
-                                             wx.html.HW_SCROLLBAR_AUTO)
-        self.m_htmlWin1.SetPage(markdown.markdown(language.s120()))
-        bSizer13.Add(self.m_htmlWin1, 1, wx.ALL | wx.EXPAND, 5)
-
-        self.m_staticText15 = wx.StaticText(self, wx.ID_ANY, language.s121(), wx.DefaultPosition, wx.DefaultSize, 0)
-        self.m_staticText15.Wrap(-1)
-
-        bSizer13.Add(self.m_staticText15, 0, wx.ALL, 5)
-        self.m_staticText15.Show(False)
-
-        self.m_gauge3 = wx.Gauge(self, wx.ID_ANY, 100, wx.DefaultPosition, wx.DefaultSize, wx.GA_HORIZONTAL)
-        self.m_gauge3.SetValue(0)
-
-        bSizer13.Add(self.m_gauge3, 0, wx.ALL | wx.EXPAND, 5)
-        self.m_gauge3.Show(False)
-
-        m_sdbSizer5 = wx.StdDialogButtonSizer()
-        self.m_sdbSizer5OK = wx.Button(self, wx.ID_OK)
-        self.m_sdbSizer5OK.SetLabel(language.s122())
-        self.m_sdbSizer5OK.Enable(False)
-        m_sdbSizer5.AddButton(self.m_sdbSizer5OK)
-        self.m_sdbSizer5Cancel = wx.Button(self, wx.ID_CANCEL)
-        self.m_sdbSizer5Cancel.SetLabel(language.s54())
-        m_sdbSizer5.AddButton(self.m_sdbSizer5Cancel)
-        m_sdbSizer5.Realize()
-
-        bSizer13.Add( m_sdbSizer5, 0, wx.EXPAND|wx.ALL, 5 )
-
-        self.SetSizer(bSizer13)
-        self.Layout()
-
-        self.Centre(wx.BOTH)
+        if platform.system() == 'Windows' and arch == 'AMD64':
+            self.current_json = 'CurrentVersion_v2.json'
+        elif platform.system() == 'Windows' and arch == 'ARM64':
+            self.current_json = 'CurrentVersion_wina64.json'
+        elif platform.system() == 'Darwin' and arch == 'arm64':
+            self.current_json = 'CurrentVersion_macosa64.json'
+        else:
+            self.current_json = 'None'
         self.update(self, usecache=True)
 
-        # Connect Events
         self.Bind(wx.EVT_CLOSE, self.close)
+        self.m_sdbSizer6Cancel.Bind(wx.EVT_BUTTON, self.close)
         self.m_htmlWin1.Bind(wx.html.EVT_HTML_LINK_CLICKED, self.link)
-        self.m_sdbSizer5Cancel.Bind(wx.EVT_BUTTON, self.close)
-        self.m_sdbSizer5OK.Bind(wx.EVT_BUTTON, self.update)
+        self.m_sdbSizer6OK.Bind(wx.EVT_BUTTON, self.update)
 
-    def __del__(self):
-        pass
+    def change_lang(self):
+        self.SetTitle(Lang.otadlg_title())
+        self.m_staticText22.SetLabel(Lang.otadlg_software_name(arch))
+        self.m_staticText23.SetLabel(Lang.otadlg_current_ver(Version))
+        self.m_staticText24.SetLabel(Lang.otadlg_lastest_ver(None))
+        self.m_sdbSizer6OK.SetLabel(Lang.otadlg_btn_check())
+        self.m_sdbSizer6Cancel.SetLabel(Lang.dlg_btn_cancel())
 
-    # Virtual event handlers, override them in your derived class
     def close(self, event):
-        if self.m_sdbSizer5Cancel.IsEnabled():
+        if self.m_sdbSizer6Cancel.IsEnabled():
             frame.Enable(True)
             self.Show(False)
 
     def link(self, event):
-        os.startfile(event.GetLinkInfo().GetHref())
+        if platform.system() == 'Windows':
+            os.startfile(event.GetLinkInfo().GetHref())
+        elif platform.system() == 'Darwin':
+            subprocess.Popen(['open', event.GetLinkInfo().GetHref()])
 
     def update(self, event, retry=0, usecache=False):
-        if self.m_sdbSizer5OK.GetLabel() == language.s122():
-            self.m_htmlWin1.SetPage(markdown.markdown(language.s120()))
-            self.m_staticText14.SetLabel(language.s1() + '\n' + language.s118(version) + '\n' + language.s119(None))
-            self.m_sdbSizer5OK.Enable(False)
+        if self.m_sdbSizer6OK.GetLabel() == Lang.otadlg_btn_check():
+            self.m_htmlWin1.SetPage(markdown.markdown(Lang.otadlg_md_checking()))
+            self.m_staticText24.SetLabel(Lang.otadlg_lastest_ver(None))
+            self.m_sdbSizer6OK.Enable(False)
             if not retry:
                 thread2 = threading.Thread(target=self.download, args=(
                     'check',
-                    'https://github.com/ZHJ00000/OTA_Service/releases/download/CurrentVersion/CurrentVersion_v2.json',
-                    os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'CurrentVersion_v2.json'), usecache),
+                    'https://github.com/ZHJ00000/OTA_Service/releases/download/CurrentVersion/' + self.current_json,
+                    os.path.join(GetUserDataPath(), 'FilesChecker4', self.current_json), usecache),
                                            daemon=True)
             else:
                 thread2 = threading.Thread(target=self.download, args=(
                     'check',
-                    'https://gitee.com/zhj00/OTA_Service/releases/download/FilesChecker/CurrentVersion_v2.json',
-                    os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'CurrentVersion_v2.json'), usecache),
+                    'https://gitee.com/zhj00/OTA_Service/releases/download/FilesChecker/' + self.current_json,
+                    os.path.join(GetUserDataPath(), 'FilesChecker4', self.current_json), usecache),
                                            daemon=True)
             thread2.start()
-        elif self.m_sdbSizer5OK.GetLabel() == language.s124():
-            self.m_staticText15.Show(True)
-            self.m_sdbSizer5OK.Enable(False)
-            self.m_sdbSizer5Cancel.Enable(False)
-            if not os.path.isdir(os.path.join(os.environ["APPDATA"], 'ZHJ', 'Updates')):
-                os.mkdir(os.path.join(os.environ["APPDATA"], 'ZHJ', 'Updates'))
-            if str(version) in self.current_version['link'].keys():
-                thread2 = threading.Thread(target=self.download, args=(
-                    'download', self.current_version['link'][str(version)][self.retry + 1],
-                    os.path.join(os.environ["APPDATA"], 'ZHJ', 'Updates',
-                                 os.path.basename(self.current_version['link'][str(version)][self.retry + 1]))),
+        elif self.m_sdbSizer6OK.GetLabel() == Lang.otadlg_btn_update():
+            self.m_staticText30.Show(True)
+            self.m_sdbSizer6OK.Enable(False)
+            self.m_sdbSizer6Cancel.Enable(False)
+            if not os.path.isdir(os.path.join(GetUserDataPath(), 'Updates')):
+                os.mkdir(os.path.join(GetUserDataPath(), 'Updates'))
+            if str(Version) in self.current_version['link'].keys():
+                thread2 = threading.Thread(target=self.download,
+                                           args=('download', self.current_version['link'][str(Version)][self.retry + 1],
+                                                 os.path.join(GetUserDataPath(), 'Updates', str(os.path.basename(
+                                                     self.current_version['link'][str(Version)][self.retry + 1])))),
                                            daemon=True)
             else:
-                thread2 = threading.Thread(target=self.download, args=(
-                    'download', self.current_version['link']['other'][self.retry + 1],
-                    os.path.join(os.environ["APPDATA"], 'ZHJ', 'Updates',
-                                 os.path.basename(self.current_version['link']['other'][self.retry + 1]))), daemon=True)
+                thread2 = threading.Thread(target=self.download,
+                                           args=('download', self.current_version['link']['other'][self.retry + 1],
+                                                 os.path.join(GetUserDataPath(), 'Updates', str(os.path.basename(
+                                                     self.current_version['link']['other'][self.retry + 1])))),
+                                           daemon=True)
             thread2.start()
             self.m_gauge3.Show(True)
             self.Layout()
 
     def download(self, mode, url, output_path, usecache=None):
-        global updatedialog
-        if os.path.isfile(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3',
-                                       'CurrentVersion_v2.json')) and mode == 'check' and usecache:
+        downloaderror = ''
+        self.status = 1
+        if os.path.isfile(os.path.join(GetUserDataPath(), 'FilesChecker4',
+                                       self.current_json)) and mode == 'check' and usecache:
             if datetime.datetime.fromtimestamp(os.path.getmtime(
-                    os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3',
-                                 'CurrentVersion_v2.json'))).date() == datetime.datetime.now().date():
-                usecache = bool(os.path.getsize(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3',
-                                                             'CurrentVersion_v2.json')))
+                    os.path.join(GetUserDataPath(), 'FilesChecker4',
+                                 self.current_json))).date() == datetime.datetime.now().date():
+                usecache = bool(os.path.getsize(os.path.join(GetUserDataPath(), 'FilesChecker4',
+                                                             self.current_json)))
             else:
                 usecache = False
         else:
             usecache = False
         if not usecache:
-            with open(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'wgetlog.log'), 'w',
-                      encoding='utf-8') as f:
-                pass
-            process = subprocess.Popen([os.path.join(os.path.dirname(sys.argv[0]), "wget.exe"), '-o',
-                                        os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'wgetlog.log'),
-                                        '-t', '3', '-T', '5', '-O', output_path, url],
-                                       creationflags=subprocess.CREATE_NO_WINDOW)
+            downloaderror = ''
+            if platform.system() == 'Windows':
+                process = subprocess.Popen(
+                    [os.path.join(GetProgPath(), "curl.exe"), '-f', '-o', output_path, '-L',
+                     '--connect-timeout', '10', url],
+                    creationflags=subprocess.CREATE_NO_WINDOW, stderr=subprocess.PIPE, universal_newlines=True,
+                    bufsize=1)
+            elif platform.system() == 'Darwin':
+                process = subprocess.Popen(
+                    [os.path.join(GetProgPath(), "curl-macos"), '-f', '-o', output_path, '-L',
+                     '--connect-timeout', '10', url],
+                    stderr=subprocess.PIPE, universal_newlines=True,
+                    bufsize=1)
+            else:
+                process = subprocess.Popen(
+                    [os.path.join(GetProgPath(), "curl"), '-f', '-o', output_path, '-L',
+                     '--connect-timeout', '10', url],
+                    stderr=subprocess.PIPE, universal_newlines=True,
+                    bufsize=1)
             if mode == 'download':
-                while True:
-                    if process.poll() is not None:
-                        break
-                    with open(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'wgetlog.log'), 'r',
-                              encoding='utf-8', errors='replace') as f:
-                        a = f.readlines()
-                    try:
-                        if a[-2].rstrip().split()[1] == '..........':
-                            self.m_staticText15.SetLabel(
-                                language.s121() + a[-2].rstrip().split()[-3] + ' (' + a[-2].rstrip().split()[
-                                    -2] + 'B/s, ' + language.s128() +
-                                a[-2].rstrip().split()[-1] + ')')
-                            self.m_gauge3.SetValue(int(a[-2].rstrip().split()[-3][:-1]))
-                        else:
-                            self.m_staticText15.SetLabel(language.s123())
-                    except IndexError:
-                        self.m_staticText15.SetLabel(language.s123())
+                for i in process.stderr:
+                    line = i
+                    line = line.replace('\n', '')
+                    line = line.split(' ')
+                    while '' in line:
+                        line.remove('')
+                    if len(line) > 0 and line[0] == 'curl:':
+                        downloaderror = i
+                    elif len(line) > 0 and line[-1] == 'Current':
+                        wx.CallAfter(self.m_staticText30.SetLabel, Lang.otadlg_connecting())
+                    elif len(line) == 12:
+                        wx.CallAfter(self.m_staticText30.SetLabel, Lang.otadlg_progress(line[2], line[-1], line[-2]))
+                        wx.CallAfter(self.m_gauge3.SetValue, int(line[2]))
+                    elif len(line) == 11:
+                        wx.CallAfter(self.m_staticText30.SetLabel, Lang.otadlg_progress(line[2], line[-1], '--:--'))
+                        wx.CallAfter(self.m_gauge3.SetValue, int(line[2]))
+                    else:
+                        wx.CallAfter(self.m_staticText30.SetLabel, Lang.otadlg_connecting())
+                    time.sleep(0.5)
+            else:
+                for i in process.stderr:
+                    if i.startswith('curl:'):
+                        downloaderror = i
                     time.sleep(0.5)
 
-            while True:
-                if process.poll() is not None:
-                    break
             rc = process.poll()
-            os.utime(output_path, (time.time(), time.time()))
+            if os.path.isfile(output_path):
+                os.utime(output_path, (time.time(), time.time()))
         else:
             rc = 0
-
-        if rc == 0:
+        if rc == 0 or rc == None:
             if mode == 'check':
                 self.retry = 0
-                with open(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'CurrentVersion_v2.json'), 'r',
+                with open(os.path.join(GetUserDataPath(), 'FilesChecker4', self.current_json), 'r',
                           encoding='utf-8') as f:
                     self.current_version = json.loads(f.read())
+
                 def releaseselect(osver):
                     osver = tuple(osver)
                     for i in self.current_version['releases'].keys():
@@ -2364,30 +2171,30 @@ class MyDialog7(wx.Dialog):
                                 if osver >= scope[0] and osver <= scope[1]:
                                     return i
                     return 'default'
-                self.current_version = self.current_version['releases'][releaseselect(sysver)]
 
-                if tuple(self.current_version['version']) > version or str(version) in self.current_version['rollback']:
-                    frame.SetStatusText(language.s139())
+                self.current_version = self.current_version['releases'][releaseselect(GetOSVersion())]
+
+                if tuple(self.current_version['version']) > Version or str(Version) in self.current_version['rollback']:
+                    frame.SetStatusText(Lang.ota_hint())
                 try:
-                    if language.LANGUAGE[2] in self.current_version['note'].keys():
-                        self.m_htmlWin1.SetPage(markdown.markdown(self.current_version['note'][language.LANGUAGE[2]]))
+                    if Lang.LANGUAGE[0] in self.current_version['note'].keys():
+                        wx.CallAfter(self.m_htmlWin1.SetPage, markdown.markdown(self.current_version['note'][Lang.LANGUAGE[0]]))
                     else:
-                        self.m_htmlWin1.SetPage(markdown.markdown(self.current_version['note']['en_gb']))
-                    self.m_staticText14.SetLabel(
-                        language.s1() + '\n' + language.s118(version) + '\n' + language.s119(self.current_version['version']))
-                    if tuple(self.current_version['version']) > version or str(version) in self.current_version[
+                        wx.CallAfter(self.m_htmlWin1.SetPage, markdown.markdown(self.current_version['note']['en_gb']))
+                    wx.CallAfter(self.m_staticText24.SetLabel, Lang.otadlg_lastest_ver(self.current_version['version']))
+                    if tuple(self.current_version['version']) > Version or str(Version) in self.current_version[
                         'rollback']:
-                        self.m_sdbSizer5OK.SetLabel(language.s124())
-                        if str(version) in self.current_version['link'].keys():
-                            self.m_staticText15.SetLabel(language.s125() + self.current_version['link'][str(version)][0])
+                        wx.CallAfter(self.m_sdbSizer6OK.SetLabel, Lang.otadlg_btn_update())
+                        if str(Version) in self.current_version['link'].keys():
+                            wx.CallAfter(self.m_staticText30.SetLabel, Lang.otadlg_patch_size(self.current_version['link'][str(Version)][0]))
                         else:
-                            self.m_staticText15.SetLabel(language.s126() + self.current_version['link']['other'][0])
-                        self.m_staticText15.Show(True)
+                            wx.CallAfter(self.m_staticText30.SetLabel, Lang.otadlg_full_size(self.current_version['link']['other'][0]))
+                        wx.CallAfter(self.m_staticText30.Show, True)
                         self.Layout()
 
                     else:
-                        self.m_sdbSizer5OK.SetLabel(language.s122())
-                    self.m_sdbSizer5OK.Enable(True)
+                        wx.CallAfter(self.m_sdbSizer6OK.SetLabel, Lang.otadlg_btn_check())
+                    wx.CallAfter(self.m_sdbSizer6OK.Enable, True)
                 except RuntimeError:
                     pass
             elif mode == 'download':
@@ -2398,11 +2205,12 @@ class MyDialog7(wx.Dialog):
                         while size >= 1024 * 1024:  # 当文件大于1MB时将文件分块读取
                             algorithm.update(f.read(1024 * 1024))
                             size -= 1024 * 1024
-                            progress = int('%.0f' % ((size1 - size) / size1*100))
-                            self.m_staticText15.SetLabel(language.s151() + str(progress) + '%')
-                            self.m_gauge3.SetValue(progress)
+                            progress = int('%.0f' % ((size1 - size) / size1 * 100))
+                            wx.CallAfter(self.m_staticText30.SetLabel, Lang.otadlg_verifying(str(progress)))
+                            wx.CallAfter(self.m_gauge3.SetValue, progress)
                         algorithm.update(f.read())
                     return (algorithm.hexdigest())  # 输出计算结果
+
                 tf = False
                 checksum = filehash(output_path, hashlib.sha3_256())
                 if os.path.basename(output_path) not in self.current_version['checksum'].keys():
@@ -2410,429 +2218,182 @@ class MyDialog7(wx.Dialog):
                 elif checksum != self.current_version['checksum'][os.path.basename(output_path)]:
                     tf = True
                 if tf:
-                    toastone = wx.MessageDialog(None, language.s152(),
-                                                language.s1(),
+                    toastone = wx.MessageDialog(None, Lang.otadlg_verification_error(),
+                                                Lang.title(),
                                                 wx.OK | wx.OK_DEFAULT | wx.ICON_ERROR)
-                    toastone.SetOKLabel(language.s57())
+                    toastone.SetOKLabel(Lang.dlg_btn_ok())
                     if toastone.ShowModal() == wx.ID_OK:  # 如果点击了提示框的确定按钮
                         toastone.Destroy()
-                        self.m_htmlWin1.SetPage(markdown.markdown(language.s127()))
-                        self.m_staticText14.SetLabel(
-                            language.s1() + '\n' + language.s118(version) + '\n' + language.s119(None))
-                        self.m_sdbSizer5OK.SetLabel(language.s122())
-                        self.m_staticText15.Show(False)
-                        self.m_gauge3.Show(False)
-                        self.Layout()
-                        self.m_sdbSizer5OK.Enable(True)
-                        self.m_sdbSizer5Cancel.Enable(True)
+                        wx.CallAfter(self.m_htmlWin1.SetPage, markdown.markdown(Lang.otadlg_md_failure()))
+                        wx.CallAfter(self.m_staticText24.SetLabel, Lang.otadlg_lastest_ver(None))
+                        wx.CallAfter(self.m_sdbSizer6OK.SetLabel, Lang.otadlg_btn_check())
+                        wx.CallAfter(self.m_staticText30.Show, False)
+                        wx.CallAfter(self.m_gauge3.Show, False)
+                        wx.CallAfter(self.Layout)
+                        wx.CallAfter(self.m_sdbSizer6OK.Enable, True)
+                        wx.CallAfter(self.m_sdbSizer6Cancel.Enable, True)
                 else:
-                    self.Destroy()
-                    if str(version) in self.current_version['link'].keys():
-                        os.popen(output_path + ' /SILENT /PASSWORD=9I87R-54373-Z0RE6-AWSE1-S2D24')
+                    wx.CallAfter(self.Destroy)
+                    if str(Version) in self.current_version['link'].keys():
+                        if platform.system() == 'Windows':
+                            subprocess.Popen(output_path + ' /SILENT /PASSWORD=FQ9LV-H30GM-043O7-0TX14-87XE4')
+                        elif platform.system() == 'Darwin':
+                            Unzip(output_path, 'FQ9LV-H30GM-043O7-0TX14-87XE4',
+                                  os.path.join(GetUserDataPath(), 'Updates',
+                                               datetime.datetime.now().strftime('%Y%m%d')))
+                            subprocess.run(['chmod', '+x', os.path.join(GetUserDataPath(), 'Updates',
+                                                                        datetime.datetime.now().strftime('%Y%m%d'),
+                                                                        'Update')],
+                                           check=True)
+                            subprocess.Popen(
+                                os.path.join(GetUserDataPath(), 'Updates', datetime.datetime.now().strftime('%Y%m%d'),
+                                             'Update'))
+
                     else:
-                        os.popen(output_path)
-                    frame.Destroy()
+                        if platform.system() == 'Windows':
+                            subprocess.Popen(output_path)
+                        elif platform.system() == 'Darwin':
+                            subprocess.Popen(['open', output_path])
+                    wx.CallAfter(frame.Destroy)
 
         else:
             try:
-                if str(version) in self.current_version['link'].keys():
+                if str(Version) in self.current_version['link'].keys():
                     tf = (mode == 'check' and self.retry == 1) or (
                             mode == 'download' and not len(
-                        self.current_version['link'][str(version)]) - 2 - self.retry)
+                        self.current_version['link'][str(Version)]) - 2 - self.retry)
                 else:
                     tf = (mode == 'check' and self.retry == 1) or (
                             mode == 'download' and not len(
                         self.current_version['link']['other']) - 2 - self.retry)
                 if tf:
-                    self.m_htmlWin1.SetPage(markdown.markdown(language.s127()))
-                    self.m_staticText14.SetLabel(
-                        language.s1() + '\n' + language.s118(version) + '\n' + language.s119(None))
-                    self.m_sdbSizer5OK.SetLabel(language.s122())
-                    self.m_staticText15.Show(False)
-                    self.m_gauge3.Show(False)
-                    self.Layout()
-                    self.m_sdbSizer5OK.Enable(True)
-                    self.m_sdbSizer5Cancel.Enable(True)
+                    wx.CallAfter(self.m_htmlWin1.SetPage, markdown.markdown(Lang.otadlg_md_failure() + '\n\n' + downloaderror))
+                    wx.CallAfter(self.m_staticText24.SetLabel, Lang.otadlg_lastest_ver(None))
+                    wx.CallAfter(self.m_sdbSizer6OK.SetLabel, Lang.otadlg_btn_check())
+                    wx.CallAfter(self.m_staticText30.Show, False)
+                    wx.CallAfter(self.m_gauge3.Show, False)
+                    wx.CallAfter(self.Layout)
+                    wx.CallAfter(self.m_sdbSizer6OK.Enable, True)
+                    wx.CallAfter(self.m_sdbSizer6Cancel.Enable, True)
                 else:
                     self.retry += 1
                     self.update(self, self.retry)
             except RuntimeError:
                 pass
-
-
-class MyDialog8 ( wx.Dialog ):
-
-    def __init__( self, parent ):
-        wx.Dialog.__init__(self, parent, id=wx.ID_ANY, title=language.s140(), pos=wx.DefaultPosition,
-                           size=wx.Size(400, 150), style=wx.DEFAULT_DIALOG_STYLE)
-
-        self.SetSize(wx.Size(int('%.0f' % (400 * self.GetDPI()[0] / 96)),
-                             int('%.0f' % (
-                                     175 * self.GetDPI()[0] / 96))))
-
-        self.SetSizeHints( wx.DefaultSize, wx.DefaultSize )
-
-        frame.Enable(False)
-
-        bSizer14 = wx.BoxSizer( wx.VERTICAL )
-
-        fgSizer2 = wx.FlexGridSizer( 0, 2, 0, 0 )
-        fgSizer2.SetFlexibleDirection( wx.BOTH )
-        fgSizer2.SetNonFlexibleGrowMode( wx.FLEX_GROWMODE_SPECIFIED )
-
-        self.m_staticText16 = wx.StaticText( self, wx.ID_ANY, language.s141(), wx.DefaultPosition, wx.DefaultSize, 0 )
-        self.m_staticText16.Wrap( -1 )
-
-        fgSizer2.Add( self.m_staticText16, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5 )
-
-        self.m_filePicker2 = wx.FilePickerCtrl(self, wx.ID_ANY, wx.EmptyString, language.s22(), language.s23(),
-                                               wx.DefaultPosition, wx.Size(-1, -1),
-                                               wx.FLP_DEFAULT_STYLE | wx.FLP_FILE_MUST_EXIST | wx.FLP_OPEN | wx.FLP_SMALL)
-        fgSizer2.Add( self.m_filePicker2, 0, wx.ALL|wx.EXPAND|wx.ALIGN_CENTER_VERTICAL, 5 )
-
-        fileDrop = FileDrop2()
-        self.m_filePicker2.SetDropTarget(fileDrop)
-
-        self.m_staticText17 = wx.StaticText( self, wx.ID_ANY, language.s142(), wx.DefaultPosition, wx.DefaultSize, 0 )
-        self.m_staticText17.Wrap( -1 )
-
-        fgSizer2.Add( self.m_staticText17, 0, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5 )
-
-        self.m_textCtrl3 = wx.TextCtrl(self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition,
-                                       wx.Size(int('%.0f' % (350 * self.GetDPI()[0] / 96)), -1), 0)
-        fgSizer2.Add( self.m_textCtrl3, 0, wx.ALL|wx.EXPAND|wx.ALIGN_CENTER_VERTICAL, 5 )
-
-
-        bSizer14.Add( fgSizer2, 1, wx.EXPAND, 5 )
-
-        self.m_staticText18 = wx.StaticText(self, wx.ID_ANY, language.s36([]), wx.DefaultPosition, wx.DefaultSize, 0)
-        if len(list(self.m_textCtrl3.GetValue())) == 8:
-            self.m_staticText18.SetLabelText(language.s36(['CRC-32']))
-        elif len(list(self.m_textCtrl3.GetValue())) == 32:
-            self.m_staticText18.SetLabelText(language.s36(['MD5']))
-        elif len(list(self.m_textCtrl3.GetValue())) == 40:
-            self.m_staticText18.SetLabelText(language.s36(['SHA-1']))
-        elif len(list(self.m_textCtrl3.GetValue())) == 56:
-            self.m_staticText18.SetLabelText(language.s36(['SHA-224', 'SHA3-224']))
-        elif len(list(self.m_textCtrl3.GetValue())) == 64:
-            self.m_staticText18.SetLabelText(language.s36(['SHA-256', 'SHA3-256', 'BLAKE2s']))
-        elif len(list(self.m_textCtrl3.GetValue())) == 96:
-            self.m_staticText18.SetLabelText(language.s36(['SHA-384', 'SHA3-384']))
-        elif len(list(self.m_textCtrl3.GetValue())) == 128:
-            self.m_staticText18.SetLabelText(language.s36(['SHA-512', 'SHA3-512', 'BLAKE2b']))
-        else:
-            self.m_staticText18.SetLabelText(language.s36([]))
-
-        self.m_staticText18.Wrap(-1)
-
-        bSizer14.Add(self.m_staticText18, 0, wx.ALL, 5)
-
-        m_sdbSizer6 = wx.StdDialogButtonSizer()
-        self.m_sdbSizer6OK = wx.Button( self, wx.ID_OK )
-        self.m_sdbSizer6OK.SetLabel(language.s53())
-        m_sdbSizer6.AddButton( self.m_sdbSizer6OK )
-        #self.m_sdbSizer6Cancel = wx.Button( self, wx.ID_CANCEL )
-        #self.m_sdbSizer6Cancel.SetLabel(language.s54())
-        #m_sdbSizer6.AddButton( self.m_sdbSizer6Cancel )
-        m_sdbSizer6.Realize()
-
-        bSizer14.Add( m_sdbSizer6, 0, wx.EXPAND|wx.ALL, 5 )
-
-
-        self.SetSizer( bSizer14 )
-        self.Layout()
-
-        self.Centre( wx.BOTH )
-
-        # Connect Events
-        self.Bind(wx.EVT_CLOSE, self.cancel)
-        self.m_textCtrl3.Bind(wx.EVT_TEXT, self.gethash)
-        #self.m_sdbSizer6Cancel.Bind(wx.EVT_BUTTON, self.cancel)
-        self.m_sdbSizer6OK.Bind(wx.EVT_BUTTON, self.ok)
-
-    def __del__( self ):
-        pass
-
-    # Virtual event handlers, override them in your derived class
-    def gethash(self, event):
-        if len(list(self.m_textCtrl3.GetValue())) == 8:
-            self.m_staticText18.SetLabelText(language.s36(['CRC-32']))
-        elif len(list(self.m_textCtrl3.GetValue())) == 32:
-            self.m_staticText18.SetLabelText(language.s36(['MD5']))
-        elif len(list(self.m_textCtrl3.GetValue())) == 40:
-            self.m_staticText18.SetLabelText(language.s36(['SHA-1']))
-        elif len(list(self.m_textCtrl3.GetValue())) == 56:
-            self.m_staticText18.SetLabelText(language.s36(['SHA-224', 'SHA3-224']))
-        elif len(list(self.m_textCtrl3.GetValue())) == 64:
-            self.m_staticText18.SetLabelText(language.s36(['SHA-256', 'SHA3-256', 'BLAKE2s']))
-        elif len(list(self.m_textCtrl3.GetValue())) == 96:
-            self.m_staticText18.SetLabelText(language.s36(['SHA-384', 'SHA3-384']))
-        elif len(list(self.m_textCtrl3.GetValue())) == 128:
-            self.m_staticText18.SetLabelText(language.s36(['SHA-512', 'SHA3-512', 'BLAKE2b']))
-        else:
-            self.m_staticText18.SetLabelText(language.s36([]))
-
-    def cancel(self, event):
-        frame.Enable(True)
-        self.Destroy()
-
-    def ok(self, event):
-        if not os.path.isfile(self.m_filePicker2.GetPath()):
-            tip = wx.adv.RichToolTip(language.s143(),
-                                     language.s144())
-            tip.SetIcon(wx.ICON_WARNING)
-            tip.ShowFor(self.m_filePicker2)
-        else:
-            index = frame.m_listCtrl2.InsertItem(frame.m_listCtrl2.GetItemCount(),
-                                                 str(frame.m_listCtrl2.GetItemCount() + 1))
-            frame.m_listCtrl2.SetItem(index, 1, self.m_filePicker2.GetPath())
-            frame.m_listCtrl2.SetItem(index, 2, self.m_textCtrl3.GetValue().lower())
-            frame.m_listCtrl2.SetItem(index, 3, '')
-            information.append('/')
-            frame.sort(None)
-            frame.Enable(True)
-            self.Destroy()
-
-
-class MyDialog9 ( wx.Dialog ):
-
-    def __init__( self, parent ):
-        wx.Dialog.__init__(self, parent, id=wx.ID_ANY, title=language.s49(), pos=wx.DefaultPosition,
-                           size=wx.Size(500, 400), style=wx.DEFAULT_DIALOG_STYLE)
-
-        self.SetSize(wx.Size(int('%.0f' % (500 * self.GetDPI()[0] / 96)),
-                             int('%.0f' % (
-                                     400 * self.GetDPI()[0] / 96))))
-
-        self.SetSizeHints( wx.DefaultSize, wx.DefaultSize )
-
-        frame.Enable(False)
-
-        bSizer15 = wx.BoxSizer( wx.VERTICAL )
-
-        self.m_staticText19 = wx.StaticText( self, wx.ID_ANY, language.s145(), wx.DefaultPosition, wx.DefaultSize, 0 )
-        self.m_staticText19.Wrap( -1 )
-
-        bSizer15.Add( self.m_staticText19, 0, wx.ALL, 5 )
-
-        self.m_richText4 = wx.richtext.RichTextCtrl(self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize,
-                                                    0 | wx.VSCROLL | wx.HSCROLL | wx.NO_BORDER | wx.WANTS_CHARS)
-        bSizer15.Add( self.m_richText4, 1, wx.EXPAND |wx.ALL, 5 )
-
-        gSizer7 = wx.GridSizer( 0, 2, 0, 0 )
-
-        self.m_button8 = wx.Button( self, wx.ID_ANY, language.s146(), wx.DefaultPosition, wx.DefaultSize, 0 )
-        gSizer7.Add( self.m_button8, 0, wx.ALL, 5 )
-
-        m_sdbSizer7 = wx.StdDialogButtonSizer()
-        self.m_sdbSizer7OK = wx.Button( self, wx.ID_OK )
-        self.m_sdbSizer7OK.SetLabel(language.s53())
-        m_sdbSizer7.AddButton( self.m_sdbSizer7OK )
-        m_sdbSizer7.Realize()
-
-        gSizer7.Add( m_sdbSizer7, 1, wx.EXPAND|wx.ALL, 5 )
-
-
-        bSizer15.Add( gSizer7, 0, wx.EXPAND, 5 )
-
-
-        self.SetSizer( bSizer15 )
-        self.Layout()
-
-        self.Centre( wx.BOTH )
-
-        # Connect Events
-        self.Bind( wx.EVT_CLOSE, self.exit)
-        self.m_button8.Bind( wx.EVT_BUTTON, self.load )
-        self.m_sdbSizer7OK.Bind( wx.EVT_BUTTON, self.ok )
-
-    def __del__( self ):
-        pass
-
-
-    # Virtual event handlers, override them in your derived class
-    def exit(self, event):
-        frame.Enable(True)
-        self.Destroy()
-
-    def load( self, event ):
-        global file
-        dlg = wx.FileDialog(self, message=language.s49(),
-                            defaultDir='',
-                            defaultFile='',
-                            wildcard=language.s147(),
-                            style=wx.FD_OPEN)
-        if dlg.ShowModal() == wx.ID_OK:
-            file = dlg.GetPath()
-            dlg.Destroy()
-            encodingpick = MyDialog5(None, 'utf-8', 1)
-            encodingpick.Show()
-
-    def ok( self, event ):
-        frame.Enable(True)
-        self.Destroy()
-        for i in self.m_richText4.GetValue().split('\n'):
-            if i:
-                splitedline = i.split(' ')
-                while len(splitedline) >= 2 and splitedline[1] == '':
-                    del splitedline[1]
-                fah = ''
-                for j in splitedline[1:]:
-                    fah += j + ' '
-
-                index = frame.m_listCtrl2.InsertItem(frame.m_listCtrl2.GetItemCount(),
-                                                     str(frame.m_listCtrl2.GetItemCount() + 1))
-                fah = fah[:-1]
-                if fah:
-                    if (fah[0] == '"' and fah[-1] == '"') or (fah[0] == "'" and fah[-1] == "'"):
-                        fah = fah[1:-1]
-                    if fah[0] == '*':
-                        fah = fah[1:]
-                    frame.m_listCtrl2.SetItem(index, 1, fah)
-                else:
-                    frame.m_listCtrl2.SetItem(index, 1, '')
-                frame.m_listCtrl2.SetItem(index, 2, i.split(' ')[0].lower())
-                frame.m_listCtrl2.SetItem(index, 3, '')
-                information.append('/')
-        frame.sort(None)
+        self.status = 0
 
 
 
 if __name__ == '__main__':
-    if len(sys.argv) > 1:
-        if '/Clean' in sys.argv[1]:
-            time.sleep(1)
-            if os.path.isdir(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'Update')):
-                shutil.rmtree(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'Update'))
-            if os.path.isdir(os.path.join(os.environ["APPDATA"], 'ZHJ', 'Updates')):
-                shutil.rmtree(os.path.join(os.environ["APPDATA"], 'ZHJ', 'Updates'))
-            for i in glob.glob(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'FilesCheckerUpdate*')):
-                os.remove(i)
+    LoadOK = True
+    if '/Clean' in sys.argv:
+        time.sleep(1)
+        if os.path.isdir(os.path.join(GetUserDataPath(), 'Updates')):
+            shutil.rmtree(os.path.join(GetUserDataPath(), 'Updates'))
     app = wx.App()
-    sys.path.append(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3'))
-    sys.path.append(os.path.dirname(sys.argv[0]))
-    if not os.path.isdir(os.path.join(os.environ["APPDATA"], 'ZHJ')):
-        os.mkdir(os.path.join(os.environ["APPDATA"], 'ZHJ'))
-    if not os.path.isdir(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3')):
-        os.mkdir(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3'))
-    languagelist = glob.glob(os.path.join(os.path.dirname(sys.argv[0]), 'language_*.py'))
+    if not os.path.isdir(os.path.join(GetUserDataPath())):
+        os.mkdir(os.path.join(GetUserDataPath()))
+    if not os.path.isdir(os.path.join(GetUserDataPath(), 'FilesChecker4')):
+        os.mkdir(os.path.join(GetUserDataPath(), 'FilesChecker4'))
+    languagelist1 = glob.glob(os.path.join(GetProgPath(), 'Languages', 'Lang-*.py'))
     languagedic = {}
-    for i in range(len(languagelist)):
-        languagelist[i] = os.path.basename(languagelist[i])
-        languagelist[i] = languagelist[i].split(".")[0]
-    code = 'def get():\n    list = []\n'
-    for i in languagelist:
-        code = code + '    import ' + i + '\n    list.append(' + i + '.LANGUAGE)\n'
-        code = code + '    list[-1].append("' + i + '")\n'
-    code = code + '    return list'
-    with open(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'getlanguagelist.py'), 'w',
-              encoding='utf-8') as f:
-        f.write(code)
-    import getlanguagelist
-    for i in getlanguagelist.get():
-        for j in i[0]:
-            languagedic[j] = [i[3], i[1]]
-    try:
-        with open(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'Setting.json'), 'r',
-                  encoding='utf-8') as settingfile:
-            setting = json.loads(settingfile.read())
-    except Exception as err:
-        try:
-            with open(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'Setting.ini'), 'r',
-                      encoding='utf-8') as settingfile:
-                settingini = settingfile.readlines()
-            for i in range(0, len(settingini)):
-                settingini[i] = settingini[i].rstrip()
-            settingini.extend(['', '', '', '', ''])
-            setting = {}
-            if settingini[0]:
-                setting['Language'] = settingini[0]
-            else:
-                setting['Language'] = 'Auto'
-            if settingini[1]:
-                setting['SaveTaskEncoding'] = settingini[1]
-            else:
-                setting['SaveTaskEncoding'] = 'UTF-8'
-            if settingini[2]:
-                setting['ExportResultEncoding'] = settingini[2]
-            else:
-                setting['ExportResultEncoding'] = 'ANSI'
-            with open(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'Setting.json'), 'w',
-                      encoding='utf-8') as settingfile:
-                settingfile.write(json.dumps(setting))
-        except Exception as err:
-            setting = {'Language': 'Auto',
-                       'SaveTaskEncoding': 'UTF-8',
-                       'ExportResultEncoding': 'ANSI',
-                       'DefaultCheckMode': 0}
-            with open(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'Setting.json'), 'w',
-                      encoding='utf-8') as settingfile:
-                settingfile.write(json.dumps(setting))
-    if 'Language' not in setting.keys():
-        setting['Language'] = 'Auto'
-    if 'SaveTaskEncoding' not in setting.keys():
-        setting['SaveTaskEncoding'] = 'UTF-8'
-    if 'ExportResultEncoding' not in setting.keys():
-        setting['ExportResultEncoding'] = 'ANSI'
-    if 'DefaultCheckMode' not in setting.keys():
-        setting['DefaultCheckMode'] = 0
-    with open(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'Setting.json'), 'w',
-              encoding='utf-8') as settingfile:
-        settingfile.write(json.dumps(setting))
-    try:
-        if setting['Language'] == 'Auto':
-            with open(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'language.py'),
-                      'w', encoding='utf-8') as languagefile:
-                languagefile.write('from ' + languagedic[locale][0] + ' import *')
+    languagelist = {}
+    for i in languagelist1:
+        if Verify_Signature(i, i + '.sig') or ('/DEBUG:DisableLangSign' in sys.argv[1:] and not (
+                getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'))):
+            spec = importlib.util.spec_from_file_location(os.path.basename(i), i)
+            if spec is not None:
+                Lang = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(Lang)
+                for j in Lang.LANGUAGE[1]:
+                    languagedic[j] = i
+                languagelist[i] = Lang.LANGUAGE[2]
         else:
-            with open(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'language.py'),
-                      'w', encoding='utf-8') as languagefile:
-                languagefile.write('from ' + setting['Language'] + ' import *')
-        import language
+            languagelist1.remove(i)
+    defaultsetting = {'Language': 'Auto',
+                      'SaveTaskEncoding': 'UTF-8',
+                      'ExportResultEncoding': 'ANSI',
+                      'DefaultCheckMode': 0,
+                      'ChecksumUpper': 0,
+                      'CompatibleWithOldTask': 0}
+    if platform.system() != 'Windows':
+        defaultsetting['ExportResultEncoding'] = 'UTF-8'
+    try:
+        setting = LoadSetting()
     except Exception as err:
-        try:
-            setting['Language'] = 'language_English'
-            with open(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'Setting.json'), 'a',
-                      encoding='utf-8') as settingfile:
-                settingfile.write(json.dumps(setting))
-            with open(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'language.py'),
-                      'w', encoding='utf-8') as languagefile:
-                languagefile.write('from ' + setting['Language'] + ' import *')
-            import language
-        except Exception as err:
-            toastone = wx.MessageDialog(None, 'Unable to start program due to missing language pack.', 'FilesChecker',
+        setting = defaultsetting
+        SaveSetting(setting)
+    for i in defaultsetting.keys():
+        if i not in setting.keys():
+            setting[i] = defaultsetting[i]
+    SaveSetting(setting)
+    enspec = None
+    enlang = None
+    if os.path.isfile(os.path.join(GetProgPath(), 'Languages', 'Lang-en_GB.py')):
+        if Verify_Signature(os.path.join(GetProgPath(), 'Languages', 'Lang-en_GB.py'),
+                            os.path.join(GetProgPath(), 'Languages', 'Lang-en_GB.py.sig')) or (
+                '/DEBUG:DisableLangSign' in sys.argv[1:] and not (
+                getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'))):
+            enspec = importlib.util.spec_from_file_location('Lang-en_GB.py',
+                                                            os.path.join(GetProgPath(), 'Languages',
+                                                                         'Lang-en_GB.py'))
+            if enspec is not None:
+                enlang = importlib.util.module_from_spec(enspec)
+                enspec.loader.exec_module(enlang)
+        else:
+            toastone = wx.MessageDialog(None,
+                                        'The software cannot be started because the verification of the language pack signature failed: .\\Lang-en_GB.py.',
+                                        'FilesChecker',
+                                        wx.OK | wx.OK_DEFAULT | wx.ICON_ERROR)
+            toastone.SetOKLabel('&OK')
+            LoadOK = False
+            if toastone.ShowModal() == wx.ID_OK:  # 如果点击了提示框的确定按钮
+                toastone.Destroy()
+    else:
+        toastone = wx.MessageDialog(None, 'Unable to start program due to missing Language .\\Lang-en_GB.py.',
+                                    'FilesChecker',
+                                    wx.OK | wx.OK_DEFAULT | wx.ICON_ERROR)
+        toastone.SetOKLabel('&OK')
+        LoadOK = False
+        if toastone.ShowModal() == wx.ID_OK:  # 如果点击了提示框的确定按钮
+            toastone.Destroy()
+    if LoadOK:
+        if setting['Language'] == 'Auto' and locale in languagedic.keys():
+            spec = importlib.util.spec_from_file_location(os.path.basename(languagedic[locale]),
+                                                          languagedic[locale])
+        elif (setting['Language'] == 'Auto' and locale not in languagedic.keys()) or os.path.join(
+            GetProgPath(), 'Languages',
+            str(setting['Language'])) not in languagelist1:
+            spec = enspec
+            setting['Language'] = 'Lang-en_GB.py'
+            SaveSetting(setting)
+        else:
+            spec = importlib.util.spec_from_file_location(str(setting['Language']),
+                                                          os.path.join(GetProgPath(), 'Languages',
+                                                                       str(setting['Language'])))
+        if spec is not None:
+
+            lang = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(lang)
+            Lang = LangProxy(lang, enlang)
+        else:
+            toastone = wx.MessageDialog(None, 'Unable to start program due to unable to load language pack.',
+                                        'FilesChecker',
                                         wx.OK | wx.OK_DEFAULT | wx.ICON_ERROR)
             toastone.SetOKLabel('&OK')
             if toastone.ShowModal() == wx.ID_OK:  # 如果点击了提示框的确定按钮
                 toastone.Destroy()
-    else:
-        if os.path.isfile(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'LOCK')):
-            try:
-                os.remove(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'LOCK'))
-            except PermissionError:
-                toastone = wx.MessageDialog(None, language.s150(),
-                                            language.s1(),
-                                            wx.OK | wx.OK_DEFAULT | wx.ICON_ERROR)
-                toastone.SetOKLabel(language.s57())
-                if toastone.ShowModal() == wx.ID_OK:  # 如果点击了提示框的确定按钮
-                    toastone.Destroy()
-            else:
-                lockfile = open(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'LOCK'), 'xb')
-                frame = main(None)
-                frame.Show(True)
-                if '/DEBUG:ForceEnableUpdate' in sys.argv[1:] or os.path.basename(sys.argv[0]).split('.')[
-                    -1].lower() == 'exe':
-                    updatedialog = MyDialog7(None)
-                else:
-                    frame.m_menuItem171.Enable(False)
-                app.MainLoop()
+                LoadOK = False
+    if LoadOK:
+        if platform.system() == 'Darwin':
+            macoslocale = wx.Locale(Lang.macoslocale())
+            if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+                macoslocale.AddCatalogLookupPathPrefix(os.path.join(GetProgPath(), 'locale'))
+            macoslocale.AddCatalog('wxstd')
+        frame = Main(None)
+        frame.Show()
+        if '/DEBUG:ForceEnableUpdate' in sys.argv[1:] or (getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS')):
+            otadlg = OTA(None)
         else:
-            lockfile = open(os.path.join(os.environ["APPDATA"], 'ZHJ', 'FilesChecker3', 'LOCK'), 'xb')
-            frame = main(None)
-            frame.Show(True)
-            if '/DEBUG:ForceEnableUpdate' in sys.argv[1:] or os.path.basename(sys.argv[0]).split('.')[
-                -1].lower() == 'exe':
-                updatedialog = MyDialog7(None)
-            else:
-                frame.m_menuItem171.Enable(False)
-            app.MainLoop()
+            frame.m_menuItem11.Enable(False)
+        app.MainLoop()

@@ -17,8 +17,10 @@
 
 [简体中文](README_Chinese_Simplified.md)  [繁體中文](README_Chinese_Traditional.md)
 
-![](https://s3.bmp.ovh/imgs/2025/06/14/d4897862d9529da9.png)
-![](https://s3.bmp.ovh/imgs/2025/06/15/a36b7c5341db732d.png)
+![](ReadmeImgs/Main1-en.png)
+![](ReadmeImgs/Main2-en.png)
+![](ReadmeImgs/Main1-macOS-en.png)
+![](ReadmeImgs/Main2-macOS-en.png)
 
 FilesChecker is a simple and easy-to-use batch file validation tool that supports algorithms such as MD5, SHA-1, SHA-256, SHA3 series, CRC-32, etc.
 
@@ -36,9 +38,12 @@ FilesChecker is a simple and easy-to-use batch file validation tool that support
     </a>
 </p>
 
-We currently only provide installation programs for Windows 64 bit and require Windows 8.1 and above versions. Other platforms can try downloading the source code and using it.
+We currently only provide installation programs for: 
+- Windows x64 (Windows 10 (10.0.10240.16384) and later) 
+- Windows Arm64 (Only tested on Windows 11 25H2)
+- macOS (Apple Silicon Only, only tested on macOS 26 Tahoe) 
 
-[End of Support for Windows 8.1](https://github.com/ZHJ00000/FilesChecker/wiki/End%20of%20support%20for%20Windows%208.1)
+Other platforms can try downloading the source code and using it.
 
 ## Software Languages
 

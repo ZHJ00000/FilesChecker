@@ -17,8 +17,10 @@
 
 [English](README.md)  [简体中文](README_Chinese_Simplified.md)
 
-![](https://s3.bmp.ovh/imgs/2025/06/15/4427b4567b83b3bb.png)
-![](https://s3.bmp.ovh/imgs/2025/06/15/e0c0adc3b00e6b60.png)
+![](ReadmeImgs/Main1-zhtr.png)
+![](ReadmeImgs/Main2-zhtr.png)
+![](ReadmeImgs/Main1-macOS-zhtr.png)
+![](ReadmeImgs/Main2-macOS-zhtr.png)
 
 文件校驗器是一款簡單易用的批量檔校驗工具，支持MD5、SHA-1、SHA-256、SHA3系列、CRC-32等算灋。
 
@@ -36,9 +38,12 @@
     </a>
 </p>
 
-暫時只提供適用於Windows 64比特的安裝程式，並要求Windows 8.1及以上版本，其他平臺可嘗試下載原始程式碼並使用。
+現時我們為以下作業系統提供安裝程式：
+- Windows x64（Windows 10（10.0.10240.16384）及以上版本）
+- Windows Arm64（僅在Windows 11 25H2上測試過）
+- macOS（僅Apple晶片，僅在macOS 26 Tahoe上測試過）
 
-[終止對Windows 8.1的支持（簡體中文）](https://github.com/ZHJ00000/FilesChecker/wiki/%E7%BB%88%E6%AD%A2%E5%AF%B9Windows%208.1%E7%9A%84%E6%94%AF%E6%8C%81)
+其他平臺可嘗試下載原始程式碼並使用。
 
 ## 軟體語言
 
