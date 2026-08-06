@@ -6,8 +6,8 @@
 ; (To generate a new GUID, click Tools | Generate GUID inside the IDE.)
 AppId=ZHJ_FilesChecker4
 AppName={cm:MyAppName}
-AppVersion=4.0
-;AppVerName=FilesChecker 4.0
+AppVersion=4.0.1
+;AppVerName=FilesChecker 4.0.1
 AppPublisher=ZHJ
 AppPublisherURL=https://github.com/ZHJ00000/
 AppSupportURL=https://github.com/ZHJ00000/FilesChecker/wiki
@@ -26,7 +26,7 @@ DisableProgramGroupPage=yes
 LicenseFile=LICENSE.txt
 ; Uncomment the following line to run in non administrative install mode (install for current user only.)
 ;PrivilegesRequired=lowest
-OutputBaseFilename=FilesCheckerSetup_4.0_arm64
+OutputBaseFilename=FilesCheckerSetup_4.0.1_arm64
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
@@ -35,7 +35,7 @@ MinVersion=10.0.10240
 VersionInfoCompany=ZHJ
 VersionInfoDescription=FilesChecker
 VersionInfoProductName=FilesChecker
-VersionInfoVersion=4.0
+VersionInfoVersion=4.0.1
 UninstallDisplayName={cm:MyAppName}
 PrivilegesRequiredOverridesAllowed=dialog
 

@@ -1,13 +1,13 @@
 import platform
 
-FOR = ['FilesChecker', (4, 0)]
+FOR = ['FilesChecker', (4, 0, 1)]
 LANGUAGE = ['zhtr', ['Chinese (Traditional)_Taiwan', 'Chinese (Traditional)_Hong Kong SAR', 'Chinese (Traditional)_Macao SAR', 'zh_HK', 'zh_MO', 'zh-Hant_CN'], '繁體中文 (中國香港特別行政區、中國澳門特別行政區、中國臺灣)']
 AUTHOR = 'ZHJ'
 
 def title():
     return '文件校驗器'
 def macoslocale():
-    return 138  #LANGUAGE_CHINESE_TRADITIONAL
+    return 137  #LANGUAGE_CHINESE_TRADITIONAL
 def menuitem_startcheck():
     if platform.system() == 'Darwin':
         return '開始校驗'

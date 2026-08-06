@@ -45,7 +45,7 @@ locale = locale.getlocale()[0]
 if locale1:
     locale = locale1
 
-Version = (4, 0)
+Version = (4, 0, 1)
 Build = '[__BUILD__]'  #Will be replaced in Build-Windows.py and Build-macOS.py.
 if Build == '[__BU' + 'ILD__]':  #DO NOT edit this line!
     Build = datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%d%H%M%S')
@@ -1105,8 +1105,8 @@ class Main(UI.Main):
                 self.m_listCtrl1.SetColumnWidth(2, GetScaledWidth(self.GetDPI(), 425))
                 self.m_listCtrl1.SetColumnWidth(3, GetScaledWidth(self.GetDPI(), 445))
                 self.m_menuItem2.SetItemLabel(Lang.menuitem_addfile() + '\tCtrl+F')
+                self.m_menuItem2.SetHelp(Lang.menuitem_addfile_help())
                 self.m_menu1.Insert(3, self.m_menuItem3)
-                #self.m_menuItem2.SetHelp(language.s98())
                 self.m_button1.SetLabel(Lang.btn_addfile())
                 self.m_button1.SetSize(self.m_button1.GetBestSize())
                 self.m_button2.Show(True)
@@ -1123,8 +1123,8 @@ class Main(UI.Main):
                 self.m_listCtrl1.SetColumnWidth(3, GetScaledWidth(self.GetDPI(), 75))
                 self.m_listCtrl1.SetDropTarget(None)
                 self.m_menuItem2.SetItemLabel(Lang.menuitem_additem() + '\tCtrl+F')
+                self.m_menuItem2.SetHelp(Lang.menuitem_additem_help())
                 self.m_menu1.Remove(self.m_menuItem3)
-                #self.m_menuItem2.SetHelp(language.s132())
                 self.m_button1.SetLabel(Lang.btn_additem())
                 self.m_button1.SetSize(self.m_button1.GetBestSize())
                 self.m_button2.Show(False)
@@ -1389,8 +1389,9 @@ class Settings(UI.Settings):
         self.m_choice5.SetSelection(self.encoding_choices.index(setting['ExportResultEncoding']))
         self.m_textCtrl1.SetValue(frame.aftercmd)
         self.run_command_edited(None, False)
-        self.m_textCtrl4.SetSize(wx.Size(GetScaledWidth(self.GetDPI(), 425), -1))
         self.m_textCtrl4.SetValue(frame.aftersave)
+        self.m_textCtrl4.SetMinSize(GetScaledSize(self.GetDPI(), wx.Size(425, -1)))
+        self.Layout()
         self.m_checkBox1.SetValue(bool(self.m_textCtrl4.GetValue()))
         self.ascr_check(None, False)
         self.m_listBox1.SetItems([Lang.settingdlg_language_auto()])
@@ -1654,6 +1655,8 @@ class ChecksumDialog(UI.ChecksumDialog):
         self.Centre()
         self.mode = False
         self.change_lang()
+        self.m_textCtrl2.SetMinSize(self.m_textCtrl2.GetSize())
+        self.Fit()
         self.Bind(wx.EVT_CLOSE, self.close)
         self.m_textCtrl2.Bind(wx.EVT_TEXT_ENTER, self.ok)
 
@@ -1704,6 +1707,8 @@ class About(UI.About):
     def __init__(self, parent=None):
         UI.About.__init__(self, parent)
         self.SetSize(GetScaledSize(self.GetDPI(), self.GetSize()))
+        self.m_customControl1.SetMinSize(GetScaledSize(self.GetDPI(), self.m_customControl1.GetSize()))
+        self.Layout()
         self.Centre()
         self.m_customControl1.SetScaleMode(2)
         self.change_lang()
@@ -1797,10 +1802,10 @@ class Calculation(UI.Calculation):
     def pause(self, event):
         if frame.ispause:
             frame.ispause = False
-            self.m_sdbSizer3OK.SetLabel(Lang.calcdlg_btn_continue())
+            self.m_sdbSizer3OK.SetLabel(Lang.calcdlg_btn_pause())
         else:
             frame.ispause = True
-            self.m_sdbSizer3OK.SetLabel(Lang.calcdlg_btn_pause())
+            self.m_sdbSizer3OK.SetLabel(Lang.calcdlg_btn_continue())
 
     def cancel(self, event):
         toastone = wx.MessageDialog(None, Lang.calcdlg_warning_cancel(), Lang.title(),
@@ -1877,7 +1882,9 @@ class ItemDialog(UI.ItemDialog):
         self.SetSize(GetScaledSize(self.GetDPI(), self.GetSize()))
         self.Centre()
         self.change_lang()
-        self.SetSize(GetScaledSize(self.GetDPI(), wx.Size(300 + self.m_textCtrl3.GetPosition()[0], self.GetSize()[1])))
+        self.m_textCtrl5.SetMinSize(GetScaledSize(self.GetDPI(), wx.Size(250, -1)))
+        self.Fit()
+        self.Layout()
         self.m_sdbSizer7OK.Bind(wx.EVT_BUTTON, self.ok)
 
     def change_lang(self):
@@ -1976,6 +1983,8 @@ class OTA(UI.OTA):
     def __init__(self, parent=None):
         UI.OTA.__init__(self, parent)
         self.SetSize(GetScaledSize(self.GetDPI(), self.GetSize()))
+        self.m_customControl2.SetMinSize(GetScaledSize(self.GetDPI(), self.m_customControl2.GetSize()))
+        self.Layout()
         self.Centre()
         self.m_customControl2.SetScaleMode(2)
         self.change_lang()
@@ -2236,9 +2245,9 @@ class OTA(UI.OTA):
                     wx.CallAfter(self.Destroy)
                     if str(Version) in self.current_version['link'].keys():
                         if platform.system() == 'Windows':
-                            subprocess.Popen(output_path + ' /SILENT /PASSWORD=FQ9LV-H30GM-043O7-0TX14-87XE4')
+                            subprocess.Popen(output_path + ' /SILENT /PASSWORD=ZR4KZ-7TA56-582Y9-30SAF-0988L')
                         elif platform.system() == 'Darwin':
-                            Unzip(output_path, 'FQ9LV-H30GM-043O7-0TX14-87XE4',
+                            Unzip(output_path, 'ZR4KZ-7TA56-582Y9-30SAF-0988L',
                                   os.path.join(GetUserDataPath(), 'Updates',
                                                datetime.datetime.now().strftime('%Y%m%d')))
                             subprocess.run(['chmod', '+x', os.path.join(GetUserDataPath(), 'Updates',

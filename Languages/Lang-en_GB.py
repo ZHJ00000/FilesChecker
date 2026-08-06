@@ -1,13 +1,13 @@
 import platform
 
-FOR = ['FilesChecker', (4, 0)]
+FOR = ['FilesChecker', (4, 0, 1)]
 LANGUAGE = ['en_gb', ['English_United States'], 'English (Universal)']
 AUTHOR = 'ZHJ'
 
 def title():
     return 'FilesChecker'
 def macoslocale():
-    return 278  # wx.LANGUAGE_ENGLISH_US
+    return 276  # wx.LANGUAGE_ENGLISH_US
 def menuitem_startcheck():
     return 'Start Chec&k...'
 def menuitem_startcheck_help():

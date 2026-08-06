@@ -1,13 +1,13 @@
 import platform
 
-FOR = ['FilesChecker', (4, 0)]
+FOR = ['FilesChecker', (4, 0, 1)]
 LANGUAGE = ['zh_cn', ['Chinese (Simplified)_China', 'zh_CN'], '简体中文 (中国大陆)']
 AUTHOR = 'ZHJ'
 
 def title():
     return '文件校验器'
 def macoslocale():
-    return 131  #wx.LANGUAGE_CHINESE_SIMPLIFIED
+    return 130  #wx.LANGUAGE_CHINESE_SIMPLIFIED
 def menuitem_startcheck():
     if platform.system() == 'Darwin':
         return '开始校验'
